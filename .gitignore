@@ -1,0 +1,34 @@
+# --- Secrets ---
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# --- Java / Maven (backend) ---
+target/
+*.class
+*.log
+
+# --- Node / Next.js (frontend) ---
+node_modules/
+.next/
+out/
+npm-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# --- IDE ---
+.idea/
+*.iml
+.vscode/
+
+# --- Claude Code ---
+.claude/settings.local.json
+
+# --- 個人情報を含むため追跡しない（ローカルにのみ保持） ---
+CLAUDE.md
+docs/spec.md
+
+# --- OS ---
+.DS_Store

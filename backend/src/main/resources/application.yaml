@@ -1,0 +1,27 @@
+spring:
+  application:
+    name: backend
+
+  datasource:
+    # ${環境変数:既定値} 形式。ローカルは既定値、Docker/AWS では環境変数で上書きし、
+    # 接続情報をリポジトリに残さない
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/escape_the_office}
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:postgres}
+
+  jpa:
+    hibernate:
+      # スキーマ管理は Flyway に一元化する。Hibernate にはテーブルを作らせず、
+      # Entity と実テーブルの不一致を起動時に検出させるだけにする
+      ddl-auto: validate
+    # レスポンス返却までDB接続を保持する既定動作を無効化（接続枯渇と暗黙のクエリ発行を防ぐ）
+    open-in-view: false
+    # 発行SQLの確認用。本番では false にする
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+
+  flyway:
+    # src/main/resources/db/migration 配下の V*.sql を起動時に適用する
+    locations: classpath:db/migration
