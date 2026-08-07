@@ -26,9 +26,10 @@ yarn-error.log*
 # --- Claude Code ---
 .claude/settings.local.json
 
-# --- 個人情報を含むため追跡しない（ローカルにのみ保持） ---
+# --- 個人情報・学習メモのため追跡しない（ローカルにのみ保持） ---
 CLAUDE.md
 docs/spec.md
+docs/spring-notes.md
 
 # --- OS ---
 .DS_Store
