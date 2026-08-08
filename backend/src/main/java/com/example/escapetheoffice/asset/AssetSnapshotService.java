@@ -5,6 +5,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.example.escapetheoffice.asset.dto.AssetSnapshotCreateRequest;
 import com.example.escapetheoffice.asset.dto.AssetSnapshotResponse;
+import com.example.escapetheoffice.common.exception.DuplicateResourceException;
 
 @Service
 public class AssetSnapshotService {
@@ -20,6 +21,12 @@ public class AssetSnapshotService {
 
     @Transactional
     public AssetSnapshotResponse create(AssetSnapshotCreateRequest request) {
+        // 同一日の二重登録を防ぐ。競合時の最後の砦は DB のユニーク制約
+        if (assetSnapshotRepository.existsByUserIdAndRecordedOn(CURRENT_USER_ID, request.recordedOn())) {
+            throw new DuplicateResourceException(
+                    request.recordedOn() + " の資産は既に登録されています");
+        }
+
         AssetSnapshot assetSnapshot = new AssetSnapshot(
                 CURRENT_USER_ID,
                 request.recordedOn(),

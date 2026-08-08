@@ -10,6 +10,8 @@ import org.springframework.web.bind.annotation.RestController;
 import com.example.escapetheoffice.asset.dto.AssetSnapshotCreateRequest;
 import com.example.escapetheoffice.asset.dto.AssetSnapshotResponse;
 
+import jakarta.validation.Valid;
+
 @RestController
 @RequestMapping("/api/assets")
 public class AssetSnapshotController {
@@ -22,7 +24,7 @@ public class AssetSnapshotController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public AssetSnapshotResponse create(@RequestBody AssetSnapshotCreateRequest request) {
+    public AssetSnapshotResponse create(@Valid @RequestBody AssetSnapshotCreateRequest request) {
         return assetSnapshotService.create(request);
     }
 }

@@ -25,3 +25,8 @@ spring:
   flyway:
     # src/main/resources/db/migration 配下の V*.sql を起動時に適用する
     locations: classpath:db/migration
+
+  mvc:
+    problemdetails:
+      # エラーレスポンスを RFC 9457（ProblemDetail）形式で返す。既定は false
+      enabled: true
