@@ -1,6 +1,9 @@
 package com.example.escapetheoffice.asset;
 
+import java.util.List;
+
 import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -26,5 +29,15 @@ public class AssetSnapshotController {
     @ResponseStatus(HttpStatus.CREATED)
     public AssetSnapshotResponse create(@Valid @RequestBody AssetSnapshotCreateRequest request) {
         return assetSnapshotService.create(request);
+    }
+
+    @GetMapping
+    public List<AssetSnapshotResponse> findAll() {
+        return assetSnapshotService.findAll();
+    }
+
+    @GetMapping("/latest")
+    public AssetSnapshotResponse findLatest() {
+        return assetSnapshotService.findLatest();
     }
 }

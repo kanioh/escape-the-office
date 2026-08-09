@@ -1,11 +1,14 @@
 package com.example.escapetheoffice.asset;
 
+import java.util.List;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.example.escapetheoffice.asset.dto.AssetSnapshotCreateRequest;
 import com.example.escapetheoffice.asset.dto.AssetSnapshotResponse;
 import com.example.escapetheoffice.common.exception.DuplicateResourceException;
+import com.example.escapetheoffice.common.exception.ResourceNotFoundException;
 
 @Service
 public class AssetSnapshotService {
@@ -37,5 +40,19 @@ public class AssetSnapshotService {
         AssetSnapshot saved = assetSnapshotRepository.save(assetSnapshot);
 
         return AssetSnapshotResponse.from(saved);
+    }
+
+    @Transactional(readOnly = true)
+    public List<AssetSnapshotResponse> findAll() {
+        return assetSnapshotRepository.findAllByUserIdOrderByRecordedOnDesc(CURRENT_USER_ID).stream()
+                .map(AssetSnapshotResponse::from)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public AssetSnapshotResponse findLatest() {
+        return assetSnapshotRepository.findFirstByUserIdOrderByRecordedOnDesc(CURRENT_USER_ID)
+                .map(AssetSnapshotResponse::from)
+                .orElseThrow(() -> new ResourceNotFoundException("資産の記録がまだありません"));
     }
 }

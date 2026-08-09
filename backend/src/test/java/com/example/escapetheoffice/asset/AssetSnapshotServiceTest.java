@@ -9,6 +9,8 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
 import java.time.LocalDate;
+import java.util.List;
+import java.util.Optional;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -20,6 +22,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import com.example.escapetheoffice.asset.dto.AssetSnapshotCreateRequest;
 import com.example.escapetheoffice.asset.dto.AssetSnapshotResponse;
 import com.example.escapetheoffice.common.exception.DuplicateResourceException;
+import com.example.escapetheoffice.common.exception.ResourceNotFoundException;
 
 @ExtendWith(MockitoExtension.class)
 class AssetSnapshotServiceTest {
@@ -72,5 +75,52 @@ class AssetSnapshotServiceTest {
                 .hasMessageContaining("2026-08-08");
 
         verify(assetSnapshotRepository, never()).save(any(AssetSnapshot.class));
+    }
+
+    @Test
+    @DisplayName("一覧は記録を DTO に変換して返す")
+    void findAllReturnsResponses() {
+        // 準備
+        given(assetSnapshotRepository.findAllByUserIdOrderByRecordedOnDesc(eq(USER_ID)))
+                .willReturn(List.of(
+                        new AssetSnapshot(USER_ID, RECORDED_ON, CASH_AMOUNT, NISA_AMOUNT),
+                        new AssetSnapshot(USER_ID, RECORDED_ON.minusDays(1), 900_000L, 400_000L)));
+
+        // 実行
+        List<AssetSnapshotResponse> responses = assetSnapshotService.findAll();
+
+        // 検証
+        assertThat(responses).hasSize(2);
+        assertThat(responses.get(0).recordedOn()).isEqualTo(RECORDED_ON);
+        assertThat(responses.get(1).cashAmount()).isEqualTo(900_000L);
+    }
+
+    @Test
+    @DisplayName("記録があれば最新1件を返す")
+    void findLatestReturnsResponse() {
+        // 準備
+        given(assetSnapshotRepository.findFirstByUserIdOrderByRecordedOnDesc(eq(USER_ID)))
+                .willReturn(Optional.of(
+                        new AssetSnapshot(USER_ID, RECORDED_ON, CASH_AMOUNT, NISA_AMOUNT)));
+
+        // 実行
+        AssetSnapshotResponse response = assetSnapshotService.findLatest();
+
+        // 検証
+        assertThat(response.recordedOn()).isEqualTo(RECORDED_ON);
+        assertThat(response.cashAmount()).isEqualTo(CASH_AMOUNT);
+    }
+
+    @Test
+    @DisplayName("記録が1件も無ければ例外を投げる")
+    void findLatestThrowsWhenEmpty() {
+        // 準備
+        given(assetSnapshotRepository.findFirstByUserIdOrderByRecordedOnDesc(eq(USER_ID)))
+                .willReturn(Optional.empty());
+
+        // 実行・検証
+        assertThatThrownBy(() -> assetSnapshotService.findLatest())
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessageContaining("資産の記録がまだありません");
     }
 }
