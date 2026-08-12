@@ -23,6 +23,13 @@ public class StudyItem {
     protected StudyItem() {
     }
 
+    // テストで採番済みの状態を再現するためだけのもの。
+    // 本番で id を自分で決めることは無いため、パッケージ外へは公開しない
+    StudyItem(Long id, String name) {
+        this.id = id;
+        this.name = name;
+    }
+
     public Long getId() {
         return id;
     }
