@@ -1,5 +1,7 @@
 package com.example.escapetheoffice.study;
 
+import java.time.OffsetDateTime;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -10,6 +12,8 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
 
 @Entity
@@ -38,19 +42,48 @@ public class StudyProgress {
     @Column(name = "progress_percent", nullable = false)
     private Integer progressPercent;
 
-    // updated_at は更新機能を作る際に @PreUpdate と併せて追加する
+    // created_at と違い DB の DEFAULT では UPDATE 時に更新されないため、Entity 側で面倒を見る
+    @Column(name = "updated_at", nullable = false)
+    private OffsetDateTime updatedAt;
 
     // JPA がリフレクションでインスタンスを生成するために必須
     protected StudyProgress() {
     }
 
-    // id は DB が採番するため受け取らない
-    public StudyProgress(
-            Long userId, StudyItem studyItem, StudyStatus status, Integer progressPercent) {
+    // id は DB が採番するため受け取らない。
+    // status は progressPercent から決まるため受け取らず、常に整合した状態で生成する
+    public StudyProgress(Long userId, StudyItem studyItem, Integer progressPercent) {
         this.userId = userId;
         this.studyItem = studyItem;
-        this.status = status;
         this.progressPercent = progressPercent;
+        this.status = resolveStatus(progressPercent);
+    }
+
+    /**
+     * 進捗率を更新する。
+     * status を単独で書き換えられると進捗率と食い違うため、setter は設けず必ずここを通す。
+     */
+    public void changeProgress(Integer progressPercent) {
+        this.progressPercent = progressPercent;
+        this.status = resolveStatus(progressPercent);
+    }
+
+    /** 進捗率とステータスは同じ事実の別表現なので、片方から機械的に決める */
+    private static StudyStatus resolveStatus(Integer progressPercent) {
+        if (progressPercent == 0) {
+            return StudyStatus.NOT_STARTED;
+        }
+        if (progressPercent == 100) {
+            return StudyStatus.DONE;
+        }
+        return StudyStatus.IN_PROGRESS;
+    }
+
+    // INSERT / UPDATE の直前に JPA が呼ぶ。両方に付けないと初回保存で null のまま送られる
+    @PrePersist
+    @PreUpdate
+    void touchUpdatedAt() {
+        this.updatedAt = OffsetDateTime.now();
     }
 
     public Long getId() {

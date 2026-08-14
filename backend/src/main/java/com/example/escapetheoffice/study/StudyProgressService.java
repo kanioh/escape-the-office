@@ -2,13 +2,16 @@ package com.example.escapetheoffice.study;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.example.escapetheoffice.common.exception.ResourceNotFoundException;
 import com.example.escapetheoffice.study.dto.StudyProgressResponse;
+import com.example.escapetheoffice.study.dto.StudyProgressUpdateRequest;
 
 @Service
 public class StudyProgressService {
@@ -45,6 +48,36 @@ public class StudyProgressService {
         return studyItems.stream()
                 .map(item -> toResponse(item, progressByItemId.get(item.getId())))
                 .toList();
+    }
+
+    /**
+     * 進捗率を更新する。進捗が未登録の項目にも使えるよう、無ければ作成する（UPSERT）。
+     * 一覧が未登録の項目も返す以上、画面からは登録済みかどうかが分からないため、
+     * 呼び出し側に登録の有無を意識させない。
+     */
+    @Transactional
+    public StudyProgressResponse update(Long studyItemId, StudyProgressUpdateRequest request) {
+        // 存在しない項目のまま新規作成に進むと外部キー制約違反で 500 になるため、先に弾く
+        StudyItem studyItem = studyItemRepository.findById(studyItemId)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "学習項目ID " + studyItemId + " は存在しません"));
+
+        Optional<StudyProgress> existing =
+                studyProgressRepository.findByUserIdAndStudyItemId(CURRENT_USER_ID, studyItemId);
+
+        StudyProgress progress;
+        if (existing.isPresent()) {
+            progress = existing.get();
+            // 取得済みの Entity は JPA が追跡しているため、値を変えるだけで
+            // トランザクション終了時に UPDATE が発行される（ダーティチェック）
+            progress.changeProgress(request.progressPercent());
+        } else {
+            // new しただけの Entity は JPA の管理外なので、save() で管理下に入れる
+            progress = studyProgressRepository.save(
+                    new StudyProgress(CURRENT_USER_ID, studyItem, request.progressPercent()));
+        }
+
+        return toResponse(studyItem, progress);
     }
 
     /** 進捗が無い項目は未着手の 0% とみなす。この判断があるため DTO 側には置かない */
