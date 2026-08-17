@@ -2,11 +2,17 @@ package com.example.escapetheoffice.roadmap.dto;
 
 import java.time.LocalDate;
 
+import com.example.escapetheoffice.common.validation.DateRange;
+import com.example.escapetheoffice.common.validation.ValidDateRange;
+
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
-// id と userId は受け取らない。DB とサーバー側で決めるため、送れる項目に含めない
+// id と userId は受け取らない。DB とサーバー側で決めるため、送れる項目に含めない。
+// 開始日と終了日の突き合わせは項目単位では書けないため、record 全体に付ける。
+// DateRange の startDate() / endDate() は record が自動生成するため実装は不要
+@ValidDateRange
 public record RoadmapEventCreateRequest(
 
         // @NotBlank は null と空文字に加えて空白だけの文字列も弾く。
@@ -17,7 +23,6 @@ public record RoadmapEventCreateRequest(
         // @PastOrPresent は付けない
         @NotNull LocalDate startDate,
 
-        // 終了未定を表せるよう、ここだけ必須にしない。
-        // 開始日との前後関係は1項目では検証できないため次回まとめて入れる
-        LocalDate endDate) {
+        // 終了未定を表せるよう、ここだけ必須にしない
+        LocalDate endDate) implements DateRange {
 }

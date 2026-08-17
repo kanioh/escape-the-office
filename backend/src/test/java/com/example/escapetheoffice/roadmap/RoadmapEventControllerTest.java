@@ -96,6 +96,25 @@ class RoadmapEventControllerTest {
     }
 
     @Test
+    @DisplayName("終了日が開始日より前なら 400 を返す")
+    void createReturnsBadRequestWhenEndDateIsBeforeStartDate() throws Exception {
+        // 判定そのものは DateRangeValidatorTest で確認済み。
+        // ここでは @ValidDateRange が DTO に付いていて @Valid から呼ばれることを確かめる
+        mockMvc.perform(post("/api/roadmap-events")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                        {
+                            "title": "逆転した予定",
+                            "startDate": "2026-12-31",
+                            "endDate": "2026-10-01"
+                        }
+                        """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors[0].field").value("endDate"))
+                .andExpect(jsonPath("$.errors[0].message").value("終了日は開始日以降にしてください"));
+    }
+
+    @Test
     @DisplayName("一覧は 200 で配列を返す")
     void findAllReturnsOk() throws Exception {
         given(roadmapEventService.findAll()).willReturn(List.of(
