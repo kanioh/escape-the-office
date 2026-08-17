@@ -5,8 +5,10 @@ import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.example.escapetheoffice.common.exception.ResourceNotFoundException;
 import com.example.escapetheoffice.roadmap.dto.RoadmapEventCreateRequest;
 import com.example.escapetheoffice.roadmap.dto.RoadmapEventResponse;
+import com.example.escapetheoffice.roadmap.dto.RoadmapEventUpdateRequest;
 
 @Service
 public class RoadmapEventService {
@@ -44,5 +46,38 @@ public class RoadmapEventService {
         return roadmapEventRepository.findAllByUserIdOrderByStartDateAsc(CURRENT_USER_ID).stream()
                 .map(RoadmapEventResponse::from)
                 .toList();
+    }
+
+    /**
+     * 予定の内容を置き換える。
+     * 取得した Entity は JPA の管理下にあるため、値を変えるだけで
+     * トランザクション終了時に UPDATE が発行される（save() は不要）。
+     */
+    @Transactional
+    public RoadmapEventResponse update(Long id, RoadmapEventUpdateRequest request) {
+        RoadmapEvent roadmapEvent = findOwnedOrThrow(id);
+
+        roadmapEvent.update(request.title(), request.startDate(), request.endDate());
+
+        // DTO はメモリ上の値を写すだけなので、UPDATE の発行前に作って問題ない
+        return RoadmapEventResponse.from(roadmapEvent);
+    }
+
+    /** 存在しない予定の削除は 404 にするため、deleteById に任せず先に取得する */
+    @Transactional
+    public void delete(Long id) {
+        RoadmapEvent roadmapEvent = findOwnedOrThrow(id);
+
+        // 取得済みの Entity を渡す。deleteById(id) だと JPA が内部でもう一度 SELECT する
+        roadmapEventRepository.delete(roadmapEvent);
+    }
+
+    /**
+     * 自分の予定を取得する。無ければ 404 に変換される例外を投げる。
+     * userId を条件に含めるため、他人の予定は存在しないものとして扱われる。
+     */
+    private RoadmapEvent findOwnedOrThrow(Long id) {
+        return roadmapEventRepository.findByIdAndUserId(id, CURRENT_USER_ID)
+                .orElseThrow(() -> new ResourceNotFoundException("予定ID " + id + " は存在しません"));
     }
 }

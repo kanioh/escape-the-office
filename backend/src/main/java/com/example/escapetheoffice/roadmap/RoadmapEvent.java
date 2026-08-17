@@ -45,6 +45,17 @@ public class RoadmapEvent {
         this.endDate = endDate;
     }
 
+    /**
+     * 予定の内容を置き換える。
+     * PUT は3項目まとめて差し替える操作なので、項目ごとの setter は設けない。
+     * id と userId を書き換える手段を持たせないことも兼ねる。
+     */
+    public void update(String title, LocalDate startDate, LocalDate endDate) {
+        this.title = title;
+        this.startDate = startDate;
+        this.endDate = endDate;
+    }
+
     public Long getId() {
         return id;
     }

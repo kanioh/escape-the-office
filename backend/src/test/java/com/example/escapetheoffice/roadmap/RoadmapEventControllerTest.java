@@ -2,9 +2,15 @@ package com.example.escapetheoffice.roadmap;
 
 import static org.hamcrest.Matchers.nullValue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.BDDMockito.willThrow;
+import static org.mockito.Mockito.verify;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -19,8 +25,10 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
+import com.example.escapetheoffice.common.exception.ResourceNotFoundException;
 import com.example.escapetheoffice.roadmap.dto.RoadmapEventCreateRequest;
 import com.example.escapetheoffice.roadmap.dto.RoadmapEventResponse;
+import com.example.escapetheoffice.roadmap.dto.RoadmapEventUpdateRequest;
 
 @WebMvcTest(RoadmapEventController.class)
 class RoadmapEventControllerTest {
@@ -128,5 +136,70 @@ class RoadmapEventControllerTest {
                 .andExpect(jsonPath("$[0].title").value("有給消化"))
                 .andExpect(jsonPath("$[1].title").value("Spring Boot学習"))
                 .andExpect(jsonPath("$[1].startDate").value("2026-10-01"));
+    }
+
+    @Test
+    @DisplayName("更新は 200 で更新後の内容を返す")
+    void updateReturnsOk() throws Exception {
+        // URL の id が Service へ渡ることを、eq(1L) で固定して確かめる
+        given(roadmapEventService.update(eq(1L), any(RoadmapEventUpdateRequest.class)))
+                .willReturn(new RoadmapEventResponse(
+                        1L, "Spring Boot 復習", LocalDate.of(2026, 8, 20), END_DATE));
+
+        mockMvc.perform(put("/api/roadmap-events/1")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                        {
+                            "title": "Spring Boot 復習",
+                            "startDate": "2026-08-20",
+                            "endDate": "2026-12-31"
+                        }
+                        """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(1))
+                .andExpect(jsonPath("$.title").value("Spring Boot 復習"))
+                .andExpect(jsonPath("$.startDate").value("2026-08-20"));
+    }
+
+    @Test
+    @DisplayName("更新でも期間が逆転していれば 400 を返す")
+    void updateReturnsBadRequestWhenEndDateIsBeforeStartDate() throws Exception {
+        // 更新用 DTO でも @ValidDateRange が効いていることを確かめる
+        mockMvc.perform(put("/api/roadmap-events/1")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                        {
+                            "title": "逆転した予定",
+                            "startDate": "2026-12-31",
+                            "endDate": "2026-10-01"
+                        }
+                        """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors[0].field").value("endDate"));
+    }
+
+    @Test
+    @DisplayName("削除は 204 で本文を返さない")
+    void deleteReturnsNoContent() throws Exception {
+        // モックの void メソッドは既定で何もしないため、台本は不要
+        mockMvc.perform(delete("/api/roadmap-events/1"))
+                .andExpect(status().isNoContent())
+                // 204 は本文なしが意味なので、空であることまで確かめる
+                .andExpect(content().string(""));
+
+        verify(roadmapEventService).delete(1L);
+    }
+
+    @Test
+    @DisplayName("削除対象が無ければ 404 に変換する")
+    void deleteReturnsNotFound() throws Exception {
+        // 戻り値が void のメソッドは given(...) に置けないため、willThrow から書く
+        willThrow(new ResourceNotFoundException("予定ID 999 は存在しません"))
+                .given(roadmapEventService).delete(999L);
+
+        mockMvc.perform(delete("/api/roadmap-events/999"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.status").value(404))
+                .andExpect(jsonPath("$.detail").value("予定ID 999 は存在しません"));
     }
 }
