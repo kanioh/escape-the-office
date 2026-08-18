@@ -1,9 +1,10 @@
 package com.example.escapetheoffice.expense;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -18,10 +19,9 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
-import com.example.escapetheoffice.common.exception.DuplicateResourceException;
 import com.example.escapetheoffice.common.exception.ResourceNotFoundException;
-import com.example.escapetheoffice.expense.dto.ExpenseSnapshotCreateRequest;
 import com.example.escapetheoffice.expense.dto.ExpenseSnapshotResponse;
+import com.example.escapetheoffice.expense.dto.ExpenseSnapshotUpdateRequest;
 
 @WebMvcTest(ExpenseSnapshotController.class)
 class ExpenseSnapshotControllerTest {
@@ -31,7 +31,6 @@ class ExpenseSnapshotControllerTest {
 
     private static final String VALID_REQUEST_BODY = """
             {
-                "recordedOn": "2026-08-01",
                 "monthlyExpense": 200000
             }
             """;
@@ -43,15 +42,17 @@ class ExpenseSnapshotControllerTest {
     private ExpenseSnapshotService expenseSnapshotService;
 
     @Test
-    @DisplayName("正しいリクエストなら 201 で登録結果を返す")
-    void createReturnsCreated() throws Exception {
-        given(expenseSnapshotService.create(any(ExpenseSnapshotCreateRequest.class)))
+    @DisplayName("正しいリクエストなら 200 で登録結果を返す")
+    void updateReturnsOk() throws Exception {
+        // URL の日付が LocalDate に変換されて Service へ渡ることも確かめる
+        given(expenseSnapshotService.update(
+                eq(RECORDED_ON), any(ExpenseSnapshotUpdateRequest.class)))
                 .willReturn(new ExpenseSnapshotResponse(1L, RECORDED_ON, 200_000L));
 
-        mockMvc.perform(post("/api/expenses")
+        mockMvc.perform(put("/api/expenses/2026-08-01")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(VALID_REQUEST_BODY))
-                .andExpect(status().isCreated())
+                .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(1))
                 .andExpect(jsonPath("$.recordedOn").value("2026-08-01"))
                 .andExpect(jsonPath("$.monthlyExpense").value(200000));
@@ -59,43 +60,41 @@ class ExpenseSnapshotControllerTest {
 
     @Test
     @DisplayName("必須項目が無ければ 400 と項目ごとのエラーを返す")
-    void createReturnsBadRequestWhenFieldsMissing() throws Exception {
-        mockMvc.perform(post("/api/expenses")
+    void updateReturnsBadRequestWhenFieldsMissing() throws Exception {
+        // recordedOn は URL へ移ったため、本文の必須項目は生活費のみ
+        mockMvc.perform(put("/api/expenses/2026-08-01")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{}"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.status").value(400))
-                .andExpect(jsonPath("$.errors.length()").value(2));
+                .andExpect(jsonPath("$.errors.length()").value(1));
     }
 
     @Test
     @DisplayName("生活費が 0 なら 400 を返す")
-    void createReturnsBadRequestWhenExpenseIsZero() throws Exception {
-        String zeroExpenseBody = """
-                {
-                    "recordedOn": "2026-08-01",
-                    "monthlyExpense": 0
-                }
-                """;
-
-        mockMvc.perform(post("/api/expenses")
+    void updateReturnsBadRequestWhenExpenseIsZero() throws Exception {
+        mockMvc.perform(put("/api/expenses/2026-08-01")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(zeroExpenseBody))
+                .content("""
+                        {
+                            "monthlyExpense": 0
+                        }
+                        """))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.errors[0].field").value("monthlyExpense"));
     }
 
     @Test
-    @DisplayName("Service が重複例外を投げたら 409 に変換する")
-    void createReturnsConflictWhenDuplicated() throws Exception {
-        given(expenseSnapshotService.create(any(ExpenseSnapshotCreateRequest.class)))
-                .willThrow(new DuplicateResourceException("2026-08-01 の生活費は既に登録されています"));
-
-        mockMvc.perform(post("/api/expenses")
+    @DisplayName("未来日を指定したら 400 と recordedOn のエラーを返す")
+    void updateReturnsBadRequestWhenRecordedOnIsFuture() throws Exception {
+        // 上の 400 とは経路が違い、GlobalExceptionHandler に追加した
+        // 引数の検証用の受け口が働くことで errors が付く
+        mockMvc.perform(put("/api/expenses/2099-01-01")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(VALID_REQUEST_BODY))
-                .andExpect(status().isConflict())
-                .andExpect(jsonPath("$.detail").value("2026-08-01 の生活費は既に登録されています"));
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.errors[0].field").value("recordedOn"));
     }
 
     @Test

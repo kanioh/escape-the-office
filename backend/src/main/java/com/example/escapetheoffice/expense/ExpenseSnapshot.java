@@ -40,6 +40,15 @@ public class ExpenseSnapshot {
         this.monthlyExpense = monthlyExpense;
     }
 
+    /**
+     * 生活費を置き換える。
+     * recordedOn は (user_id, recorded_on) のユニーク制約でこの記録を特定する鍵であり、
+     * URL で指定するものでもあるため変更対象にしない。
+     */
+    public void updateMonthlyExpense(Long monthlyExpense) {
+        this.monthlyExpense = monthlyExpense;
+    }
+
     public Long getId() {
         return id;
     }

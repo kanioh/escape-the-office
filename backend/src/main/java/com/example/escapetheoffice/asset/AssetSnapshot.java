@@ -44,6 +44,17 @@ public class AssetSnapshot {
         this.nisaAmount = nisaAmount;
     }
 
+    /**
+     * 金額を置き換える。
+     * recordedOn は (user_id, recorded_on) のユニーク制約でこの記録を特定する鍵であり、
+     * URL で指定するものでもあるため変更対象にしない。
+     * 日付を間違えた場合は正しい日付で登録し直す。
+     */
+    public void updateAmounts(Long cashAmount, Long nisaAmount) {
+        this.cashAmount = cashAmount;
+        this.nisaAmount = nisaAmount;
+    }
+
     public Long getId() {
         return id;
     }

@@ -9,7 +9,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface ExpenseSnapshotRepository extends JpaRepository<ExpenseSnapshot, Long> {
 
     // メソッド名から SQL が生成される。
-    boolean existsByUserIdAndRecordedOn(Long userId, LocalDate recordedOn);
+    // 未登録は異常ではなく新規作成に進む合図のため、Optional で受ける
+    Optional<ExpenseSnapshot> findByUserIdAndRecordedOn(Long userId, LocalDate recordedOn);
 
     List<ExpenseSnapshot> findAllByUserIdOrderByRecordedOnDesc(Long userId);
 

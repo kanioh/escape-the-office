@@ -19,10 +19,9 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import com.example.escapetheoffice.common.exception.DuplicateResourceException;
 import com.example.escapetheoffice.common.exception.ResourceNotFoundException;
-import com.example.escapetheoffice.expense.dto.ExpenseSnapshotCreateRequest;
 import com.example.escapetheoffice.expense.dto.ExpenseSnapshotResponse;
+import com.example.escapetheoffice.expense.dto.ExpenseSnapshotUpdateRequest;
 
 @ExtendWith(MockitoExtension.class)
 class ExpenseSnapshotServiceTest {
@@ -38,40 +37,46 @@ class ExpenseSnapshotServiceTest {
     private ExpenseSnapshotService expenseSnapshotService;
 
     @Test
-    @DisplayName("同じ日付の記録が無ければ登録できる")
-    void createSavesWhenNotDuplicated() {
+    @DisplayName("その日の記録が無ければ新規作成して保存する")
+    void updateCreatesSnapshotWhenNotRegistered() {
         // 準備
-        ExpenseSnapshotCreateRequest request =
-                new ExpenseSnapshotCreateRequest(RECORDED_ON, MONTHLY_EXPENSE);
-        given(expenseSnapshotRepository.existsByUserIdAndRecordedOn(eq(USER_ID), eq(RECORDED_ON)))
-                .willReturn(false);
+        given(expenseSnapshotRepository.findByUserIdAndRecordedOn(USER_ID, RECORDED_ON))
+                .willReturn(Optional.empty());
+        // 保存された Entity がそのまま返る、という実際のリポジトリの挙動を再現する。
+        // この台本が使われなければテストは失敗するため、save が呼ばれたことも保証される
         given(expenseSnapshotRepository.save(any(ExpenseSnapshot.class)))
-                .willReturn(new ExpenseSnapshot(USER_ID, RECORDED_ON, MONTHLY_EXPENSE));
+                .willAnswer(invocation -> invocation.getArgument(0));
 
         // 実行
-        ExpenseSnapshotResponse response = expenseSnapshotService.create(request);
+        ExpenseSnapshotResponse response = expenseSnapshotService.update(
+                RECORDED_ON, new ExpenseSnapshotUpdateRequest(MONTHLY_EXPENSE));
 
         // 検証
         assertThat(response.recordedOn()).isEqualTo(RECORDED_ON);
         assertThat(response.monthlyExpense()).isEqualTo(MONTHLY_EXPENSE);
-        verify(expenseSnapshotRepository).save(any(ExpenseSnapshot.class));
     }
 
     @Test
-    @DisplayName("同じ日付の記録があれば例外を投げ、保存しない")
-    void createThrowsWhenDuplicated() {
+    @DisplayName("その日の記録があればダーティチェックに任せ、save を呼ばずに上書きする")
+    void updateOverwritesExistingSnapshotWithoutSave() {
         // 準備
-        ExpenseSnapshotCreateRequest request =
-                new ExpenseSnapshotCreateRequest(RECORDED_ON, MONTHLY_EXPENSE);
-        given(expenseSnapshotRepository.existsByUserIdAndRecordedOn(eq(USER_ID), eq(RECORDED_ON)))
-                .willReturn(true);
+        ExpenseSnapshot existing =
+                new ExpenseSnapshot(USER_ID, RECORDED_ON, MONTHLY_EXPENSE);
+        given(expenseSnapshotRepository.findByUserIdAndRecordedOn(USER_ID, RECORDED_ON))
+                .willReturn(Optional.of(existing));
 
-        // 実行・検証
-        assertThatThrownBy(() -> expenseSnapshotService.create(request))
-                .isInstanceOf(DuplicateResourceException.class)
-                .hasMessageContaining("2026-08-09");
+        // 実行
+        ExpenseSnapshotResponse response = expenseSnapshotService.update(
+                RECORDED_ON, new ExpenseSnapshotUpdateRequest(250_000L));
 
-        verify(expenseSnapshotRepository, never()).save(any(ExpenseSnapshot.class));
+        // 検証
+        assertThat(response.monthlyExpense()).isEqualTo(250_000L);
+        // 日付は鍵なので変わらない
+        assertThat(response.recordedOn()).isEqualTo(RECORDED_ON);
+        // Entity 自体が書き換わっていることを確認する
+        assertThat(existing.getMonthlyExpense()).isEqualTo(250_000L);
+        // save を呼ばないのは意図した実装。呼ぶよう変えたらここで気付ける
+        verify(expenseSnapshotRepository, never()).save(any());
     }
 
     @Test

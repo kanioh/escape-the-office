@@ -19,9 +19,8 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import com.example.escapetheoffice.asset.dto.AssetSnapshotCreateRequest;
 import com.example.escapetheoffice.asset.dto.AssetSnapshotResponse;
-import com.example.escapetheoffice.common.exception.DuplicateResourceException;
+import com.example.escapetheoffice.asset.dto.AssetSnapshotUpdateRequest;
 import com.example.escapetheoffice.common.exception.ResourceNotFoundException;
 
 @ExtendWith(MockitoExtension.class)
@@ -40,41 +39,48 @@ class AssetSnapshotServiceTest {
     private AssetSnapshotService assetSnapshotService;
 
     @Test
-    @DisplayName("同じ日付の記録が無ければ登録できる")
-    void createSavesWhenNotDuplicated() {
+    @DisplayName("その日の記録が無ければ新規作成して保存する")
+    void updateCreatesSnapshotWhenNotRegistered() {
         // 準備
-        AssetSnapshotCreateRequest request =
-                new AssetSnapshotCreateRequest(RECORDED_ON, CASH_AMOUNT, NISA_AMOUNT);
-        given(assetSnapshotRepository.existsByUserIdAndRecordedOn(eq(USER_ID), eq(RECORDED_ON)))
-                .willReturn(false);
+        given(assetSnapshotRepository.findByUserIdAndRecordedOn(USER_ID, RECORDED_ON))
+                .willReturn(Optional.empty());
+        // 保存された Entity がそのまま返る、という実際のリポジトリの挙動を再現する。
+        // この台本が使われなければテストは失敗するため、save が呼ばれたことも保証される
         given(assetSnapshotRepository.save(any(AssetSnapshot.class)))
-                .willReturn(new AssetSnapshot(USER_ID, RECORDED_ON, CASH_AMOUNT, NISA_AMOUNT));
+                .willAnswer(invocation -> invocation.getArgument(0));
 
         // 実行
-        AssetSnapshotResponse response = assetSnapshotService.create(request);
+        AssetSnapshotResponse response = assetSnapshotService.update(
+                RECORDED_ON, new AssetSnapshotUpdateRequest(CASH_AMOUNT, NISA_AMOUNT));
 
         // 検証
         assertThat(response.recordedOn()).isEqualTo(RECORDED_ON);
         assertThat(response.cashAmount()).isEqualTo(CASH_AMOUNT);
         assertThat(response.nisaAmount()).isEqualTo(NISA_AMOUNT);
-        verify(assetSnapshotRepository).save(any(AssetSnapshot.class));
     }
 
     @Test
-    @DisplayName("同じ日付の記録があれば例外を投げ、保存しない")
-    void createThrowsWhenDuplicated() {
+    @DisplayName("その日の記録があればダーティチェックに任せ、save を呼ばずに上書きする")
+    void updateOverwritesExistingSnapshotWithoutSave() {
         // 準備
-        AssetSnapshotCreateRequest request =
-                new AssetSnapshotCreateRequest(RECORDED_ON, CASH_AMOUNT, NISA_AMOUNT);
-        given(assetSnapshotRepository.existsByUserIdAndRecordedOn(eq(USER_ID), eq(RECORDED_ON)))
-                .willReturn(true);
+        AssetSnapshot existing =
+                new AssetSnapshot(USER_ID, RECORDED_ON, CASH_AMOUNT, NISA_AMOUNT);
+        given(assetSnapshotRepository.findByUserIdAndRecordedOn(USER_ID, RECORDED_ON))
+                .willReturn(Optional.of(existing));
 
-        // 実行・検証
-        assertThatThrownBy(() -> assetSnapshotService.create(request))
-                .isInstanceOf(DuplicateResourceException.class)
-                .hasMessageContaining("2026-08-08");
+        // 実行
+        AssetSnapshotResponse response = assetSnapshotService.update(
+                RECORDED_ON, new AssetSnapshotUpdateRequest(1_200_000L, 600_000L));
 
-        verify(assetSnapshotRepository, never()).save(any(AssetSnapshot.class));
+        // 検証
+        assertThat(response.cashAmount()).isEqualTo(1_200_000L);
+        assertThat(response.nisaAmount()).isEqualTo(600_000L);
+        // 日付は鍵なので変わらない
+        assertThat(response.recordedOn()).isEqualTo(RECORDED_ON);
+        // Entity 自体が書き換わっていることを確認する
+        assertThat(existing.getCashAmount()).isEqualTo(1_200_000L);
+        // save を呼ばないのは意図した実装。呼ぶよう変えたらここで気付ける
+        verify(assetSnapshotRepository, never()).save(any());
     }
 
     @Test

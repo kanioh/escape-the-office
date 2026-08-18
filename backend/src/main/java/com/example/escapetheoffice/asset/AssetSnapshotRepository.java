@@ -8,8 +8,9 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface AssetSnapshotRepository extends JpaRepository<AssetSnapshot, Long> {
 
-    // メソッド名から SQL が生成される。uq_asset_snapshots_user_date と同じ条件
-    boolean existsByUserIdAndRecordedOn(Long userId, LocalDate recordedOn);
+    // メソッド名から SQL が生成される。uq_asset_snapshots_user_date と同じ条件。
+    // 未登録は異常ではなく新規作成に進む合図のため、Optional で受ける
+    Optional<AssetSnapshot> findByUserIdAndRecordedOn(Long userId, LocalDate recordedOn);
 
     List<AssetSnapshot> findAllByUserIdOrderByRecordedOnDesc(Long userId);
 

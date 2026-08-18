@@ -1,13 +1,14 @@
 package com.example.escapetheoffice.asset;
 
+import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.example.escapetheoffice.asset.dto.AssetSnapshotCreateRequest;
 import com.example.escapetheoffice.asset.dto.AssetSnapshotResponse;
-import com.example.escapetheoffice.common.exception.DuplicateResourceException;
+import com.example.escapetheoffice.asset.dto.AssetSnapshotUpdateRequest;
 import com.example.escapetheoffice.common.exception.ResourceNotFoundException;
 
 @Service
@@ -22,24 +23,33 @@ public class AssetSnapshotService {
         this.assetSnapshotRepository = assetSnapshotRepository;
     }
 
+    /**
+     * その日の資産を登録する。既に記録があれば上書きする（UPSERT）。
+     * 残高の入力ミスはその場で直したくなるため、同一日の再登録をエラーにしない。
+     */
     @Transactional
-    public AssetSnapshotResponse create(AssetSnapshotCreateRequest request) {
-        // 同一日の二重登録を防ぐ。競合時の最後の砦は DB のユニーク制約
-        if (assetSnapshotRepository.existsByUserIdAndRecordedOn(CURRENT_USER_ID, request.recordedOn())) {
-            throw new DuplicateResourceException(
-                    request.recordedOn() + " の資産は既に登録されています");
+    public AssetSnapshotResponse update(
+            LocalDate recordedOn, AssetSnapshotUpdateRequest request) {
+
+        Optional<AssetSnapshot> existing =
+                assetSnapshotRepository.findByUserIdAndRecordedOn(CURRENT_USER_ID, recordedOn);
+
+        AssetSnapshot assetSnapshot;
+        if (existing.isPresent()) {
+            assetSnapshot = existing.get();
+            // 取得済みの Entity は JPA が追跡しているため、値を変えるだけで
+            // トランザクション終了時に UPDATE が発行される（ダーティチェック）
+            assetSnapshot.updateAmounts(request.cashAmount(), request.nisaAmount());
+        } else {
+            // new しただけの Entity は JPA の管理外なので、save() で管理下に入れる
+            assetSnapshot = assetSnapshotRepository.save(new AssetSnapshot(
+                    CURRENT_USER_ID,
+                    recordedOn,
+                    request.cashAmount(),
+                    request.nisaAmount()));
         }
 
-        AssetSnapshot assetSnapshot = new AssetSnapshot(
-                CURRENT_USER_ID,
-                request.recordedOn(),
-                request.cashAmount(),
-                request.nisaAmount());
-
-        // save() の戻り値には採番された id が入っているため、引数ではなく戻り値を使う
-        AssetSnapshot saved = assetSnapshotRepository.save(assetSnapshot);
-
-        return AssetSnapshotResponse.from(saved);
+        return AssetSnapshotResponse.from(assetSnapshot);
     }
 
     @Transactional(readOnly = true)

@@ -1,14 +1,15 @@
 package com.example.escapetheoffice.expense;
 
+import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.example.escapetheoffice.common.exception.DuplicateResourceException;
 import com.example.escapetheoffice.common.exception.ResourceNotFoundException;
-import com.example.escapetheoffice.expense.dto.ExpenseSnapshotCreateRequest;
 import com.example.escapetheoffice.expense.dto.ExpenseSnapshotResponse;
+import com.example.escapetheoffice.expense.dto.ExpenseSnapshotUpdateRequest;
 
 @Service
 public class ExpenseSnapshotService {
@@ -22,23 +23,32 @@ public class ExpenseSnapshotService {
         this.expenseSnapshotRepository = expenseSnapshotRepository;
     }
 
+    /**
+     * その日の生活費を登録する。既に記録があれば上書きする（UPSERT）。
+     * 生活費は設定値の見直しなので、同じ日に何度も直したくなる。
+     */
     @Transactional
-    public ExpenseSnapshotResponse create(ExpenseSnapshotCreateRequest request) {
-        // 同一日の二重登録を防ぐ。競合時の最後の砦は DB のユニーク制約
-        if (expenseSnapshotRepository.existsByUserIdAndRecordedOn(CURRENT_USER_ID, request.recordedOn())) {
-            throw new DuplicateResourceException(
-                    request.recordedOn() + " の生活費は既に登録されています");
+    public ExpenseSnapshotResponse update(
+            LocalDate recordedOn, ExpenseSnapshotUpdateRequest request) {
+
+        Optional<ExpenseSnapshot> existing =
+                expenseSnapshotRepository.findByUserIdAndRecordedOn(CURRENT_USER_ID, recordedOn);
+
+        ExpenseSnapshot expenseSnapshot;
+        if (existing.isPresent()) {
+            expenseSnapshot = existing.get();
+            // 取得済みの Entity は JPA が追跡しているため、値を変えるだけで
+            // トランザクション終了時に UPDATE が発行される（ダーティチェック）
+            expenseSnapshot.updateMonthlyExpense(request.monthlyExpense());
+        } else {
+            // new しただけの Entity は JPA の管理外なので、save() で管理下に入れる
+            expenseSnapshot = expenseSnapshotRepository.save(new ExpenseSnapshot(
+                    CURRENT_USER_ID,
+                    recordedOn,
+                    request.monthlyExpense()));
         }
 
-        ExpenseSnapshot expenseSnapshot = new ExpenseSnapshot(
-                CURRENT_USER_ID,
-                request.recordedOn(),
-                request.monthlyExpense());
-
-        // save() の戻り値には採番された id が入っているため、引数ではなく戻り値を使う
-        ExpenseSnapshot saved = expenseSnapshotRepository.save(expenseSnapshot);
-
-        return ExpenseSnapshotResponse.from(saved);
+        return ExpenseSnapshotResponse.from(expenseSnapshot);
     }
 
     @Transactional(readOnly = true)
