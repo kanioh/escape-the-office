@@ -1,6 +1,8 @@
 package com.example.escapetheoffice.roadmap;
 
+import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -46,6 +48,19 @@ public class RoadmapEventService {
         return roadmapEventRepository.findAllByUserIdOrderByStartDateAsc(CURRENT_USER_ID).stream()
                 .map(RoadmapEventResponse::from)
                 .toList();
+    }
+
+    /**
+     * これから始まる予定のうち最も早いものを返す（ダッシュボードの「次の目標」）。
+     * 予定が無い、あるいはすべて過去、という状態は正常なので空で返す。
+     * 「今日」の決定は Repository ではなくここで行う。
+     */
+    @Transactional(readOnly = true)
+    public Optional<RoadmapEventResponse> findNext() {
+        return roadmapEventRepository
+                .findFirstByUserIdAndStartDateGreaterThanEqualOrderByStartDateAsc(
+                        CURRENT_USER_ID, LocalDate.now())
+                .map(RoadmapEventResponse::from);
     }
 
     /**

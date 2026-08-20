@@ -121,6 +121,39 @@ class RoadmapEventServiceTest {
     }
 
     @Test
+    @DisplayName("次の目標は直近の予定を DTO に変換して返す")
+    void findNextReturnsUpcomingEvent() {
+        // 準備。基準日は Service 内の LocalDate.now() で決まるため any で受ける
+        given(roadmapEventRepository
+                .findFirstByUserIdAndStartDateGreaterThanEqualOrderByStartDateAsc(
+                        eq(USER_ID), any(LocalDate.class)))
+                .willReturn(Optional.of(
+                        new RoadmapEvent(USER_ID, "有給消化",
+                                LocalDate.of(2026, 9, 1), LocalDate.of(2026, 9, 30))));
+
+        // 実行
+        Optional<RoadmapEventResponse> response = roadmapEventService.findNext();
+
+        // 検証
+        assertThat(response).isPresent();
+        assertThat(response.get().title()).isEqualTo("有給消化");
+        assertThat(response.get().startDate()).isEqualTo(LocalDate.of(2026, 9, 1));
+    }
+
+    @Test
+    @DisplayName("これから始まる予定が無ければ次の目標は空を返す")
+    void findNextReturnsEmptyWhenNoUpcomingEvent() {
+        // 準備
+        given(roadmapEventRepository
+                .findFirstByUserIdAndStartDateGreaterThanEqualOrderByStartDateAsc(
+                        eq(USER_ID), any(LocalDate.class)))
+                .willReturn(Optional.empty());
+
+        // 実行・検証（予定が無い、すべて過去、はどちらも正常。例外にしない）
+        assertThat(roadmapEventService.findNext()).isEmpty();
+    }
+
+    @Test
     @DisplayName("予定を更新する際はダーティチェックに任せ、save を呼ばない")
     void updateChangesEventWithoutSave() {
         // 準備
