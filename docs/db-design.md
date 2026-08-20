@@ -118,6 +118,11 @@ erDiagram
 | created_at | 登録日時 | TIMESTAMPTZ | NOT NULL, DEFAULT now() |
 
 - `uq_expense_snapshots_user_date`: UNIQUE (user_id, recorded_on)
+- **`recorded_on` は asset_snapshots と列名は同じだが意味が違う。**
+  - `asset_snapshots.recorded_on` … **その日の実際の残高**を記録した日（実績）
+  - `expense_snapshots.recorded_on` … **その金額に見直した日**（設定値の変更日）
+  - 生活費は毎日記録するものではなく、家賃の改定などで見直したときに1行増える
+  - テーブルは分けず運用でカバーする判断。列名を変えるほどの実害が無いため
 
 ### study_items（学習項目マスタ）
 
