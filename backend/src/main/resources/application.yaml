@@ -30,3 +30,8 @@ spring:
     problemdetails:
       # エラーレスポンスを RFC 9457（ProblemDetail）形式で返す。既定は false
       enabled: true
+
+app:
+  cors:
+    # 画面（Next.js）のオリジン。AWS では環境変数で本番URLに差し替える。カンマ区切りで複数指定可
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000}
