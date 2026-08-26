@@ -46,8 +46,8 @@ class DashboardControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.totalAssets").value(1570000))
                 .andExpect(jsonPath("$.survivableMonths").value(6))
-                .andExpect(jsonPath("$.studyProgress.length()").value(2))
-                .andExpect(jsonPath("$.studyProgress[0].studyItemName").value("Spring Boot"))
+                .andExpect(jsonPath("$.recentStudyProgress.length()").value(2))
+                .andExpect(jsonPath("$.recentStudyProgress[0].studyItemName").value("Spring Boot"))
                 // 入れ子はドットで辿る
                 .andExpect(jsonPath("$.nextEvent.title").value("有給消化"))
                 .andExpect(jsonPath("$.nextEvent.startDate").value("2026-09-01"));

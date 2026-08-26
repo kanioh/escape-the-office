@@ -5,6 +5,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+import org.springframework.data.domain.Limit;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -47,6 +48,19 @@ public class StudyProgressService {
 
         return studyItems.stream()
                 .map(item -> toResponse(item, progressByItemId.get(item.getId())))
+                .toList();
+    }
+
+    /**
+     * 最近更新した進捗を新しい順に返す（ダッシュボード用）。
+     * 一度も進捗を登録していない項目は updated_at を持たないため、ここには現れない。
+     * 「最近触ったもの」を並べる用途なので、未着手の項目が出てこないのは意図どおり。
+     */
+    @Transactional(readOnly = true)
+    public List<StudyProgressResponse> findRecentlyUpdated(int limit) {
+        return studyProgressRepository
+                .findAllByUserIdOrderByUpdatedAtDesc(CURRENT_USER_ID, Limit.of(limit)).stream()
+                .map(progress -> toResponse(progress.getStudyItem(), progress))
                 .toList();
     }
 

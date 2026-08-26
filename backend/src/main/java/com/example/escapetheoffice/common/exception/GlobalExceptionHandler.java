@@ -83,6 +83,12 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         return ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, ex.getMessage());
     }
 
+    /** 登録済みのデータと衝突。入力の書式は正しいため 400 ではなく 409 で返す */
+    @ExceptionHandler(DuplicateResourceException.class)
+    public ProblemDetail handleDuplicateResource(DuplicateResourceException ex) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
+    }
+
     /**
      * 検証失敗のレスポンスは経路が違っても同じ形にする。
      * Spring が組み立てた ProblemDetail を受け取って加工するだけにし、

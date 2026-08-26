@@ -2,6 +2,7 @@ package com.example.escapetheoffice.dashboard;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.BDDMockito.given;
 
 import java.time.LocalDate;
@@ -51,7 +52,7 @@ class DashboardServiceTest {
                 250_000L,
                 6L,
                 new SurvivalSimulationResponse.BasedOn(RECORDED_ON, RECORDED_ON)));
-        given(studyProgressService.findAll()).willReturn(List.of(
+        given(studyProgressService.findRecentlyUpdated(anyInt())).willReturn(List.of(
                 new StudyProgressResponse(1L, "Spring Boot", StudyStatus.IN_PROGRESS, 55),
                 new StudyProgressResponse(2L, "AWS", StudyStatus.NOT_STARTED, 0)));
         given(roadmapEventService.findNext()).willReturn(Optional.of(
@@ -64,8 +65,8 @@ class DashboardServiceTest {
         // 検証
         assertThat(response.totalAssets()).isEqualTo(1_570_000L);
         assertThat(response.survivableMonths()).isEqualTo(6L);
-        assertThat(response.studyProgress()).hasSize(2);
-        assertThat(response.studyProgress().get(0).studyItemName()).isEqualTo("Spring Boot");
+        assertThat(response.recentStudyProgress()).hasSize(2);
+        assertThat(response.recentStudyProgress().get(0).studyItemName()).isEqualTo("Spring Boot");
         assertThat(response.nextEvent().title()).isEqualTo("有給消化");
     }
 
@@ -78,7 +79,7 @@ class DashboardServiceTest {
                 250_000L,
                 6L,
                 new SurvivalSimulationResponse.BasedOn(RECORDED_ON, RECORDED_ON)));
-        given(studyProgressService.findAll()).willReturn(List.of());
+        given(studyProgressService.findRecentlyUpdated(anyInt())).willReturn(List.of());
         given(roadmapEventService.findNext()).willReturn(Optional.empty());
 
         // 実行

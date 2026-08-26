@@ -18,9 +18,14 @@ public class StudyItem {
     @Column(nullable = false, unique = true, length = 100)
     private String name;
 
-    // JPA がリフレクションでインスタンスを生成するために必須。
-    // アプリ側から新規作成させないよう protected にする（マスタは参照専用）
+    // JPA がリフレクションでインスタンスを生成するために必須
     protected StudyItem() {
+    }
+
+    // 画面から学習項目を追加できるようにしたため、生成手段を公開する。
+    // id は DB が採番するため受け取らない
+    public StudyItem(String name) {
+        this.name = name;
     }
 
     // テストで採番済みの状態を再現するためだけのもの。

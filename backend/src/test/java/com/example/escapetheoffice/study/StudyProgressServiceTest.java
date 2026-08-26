@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -17,6 +18,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Limit;
 import org.springframework.data.domain.Sort;
 
 import com.example.escapetheoffice.common.exception.ResourceNotFoundException;
@@ -40,6 +42,29 @@ class StudyProgressServiceTest {
 
     @InjectMocks
     private StudyProgressService studyProgressService;
+
+    @Test
+    @DisplayName("最近更新した進捗を Repository が返した順のまま返す")
+    void findRecentlyUpdatedReturnsProgressInRepositoryOrder() {
+        // 準備。並べ替えは SQL 側の責務なので、ここでは順序を作り直していないことを確かめる
+        given(studyProgressRepository.findAllByUserIdOrderByUpdatedAtDesc(
+                eq(USER_ID), eq(Limit.of(3))))
+                .willReturn(List.of(
+                        new StudyProgress(USER_ID, AWS, 20),
+                        new StudyProgress(USER_ID, SPRING_BOOT, 55)));
+
+        // 実行
+        List<StudyProgressResponse> responses = studyProgressService.findRecentlyUpdated(3);
+
+        // 検証
+        assertThat(responses)
+                .extracting(
+                        StudyProgressResponse::studyItemName,
+                        StudyProgressResponse::progressPercent)
+                .containsExactly(
+                        tuple("AWS", 20),
+                        tuple("Spring Boot", 55));
+    }
 
     @Test
     @DisplayName("進捗が未登録でもマスタ全件を未着手 0% で返す")

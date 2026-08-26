@@ -18,8 +18,9 @@ public record DashboardResponse(
         long totalAssets,
         long survivableMonths,
 
-        // 未登録の学習項目も 0% で埋まるため、常に全項目が並ぶ
-        List<StudyProgressResponse> studyProgress,
+        // 最近更新した順の数件だけ。全件は画面③（学習管理）で見る。
+        // 一度も進捗を登録していない項目は updated_at を持たないため含まれない
+        List<StudyProgressResponse> recentStudyProgress,
 
         // これから始まる予定が1件も無ければ null
         RoadmapEventResponse nextEvent) {

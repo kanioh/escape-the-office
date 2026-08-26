@@ -16,6 +16,9 @@ import com.example.escapetheoffice.study.StudyProgressService;
 @Service
 public class DashboardService {
 
+    // 画面に並べる学習進捗の件数。全件は画面③で見るため、ここでは直近だけ拾う
+    private static final int RECENT_STUDY_PROGRESS_LIMIT = 3;
+
     private final SurvivalSimulationService survivalSimulationService;
     private final StudyProgressService studyProgressService;
     private final RoadmapEventService roadmapEventService;
@@ -41,7 +44,7 @@ public class DashboardService {
         return new DashboardResponse(
                 simulation.totalAssets(),
                 simulation.survivableMonths(),
-                studyProgressService.findAll(),
+                studyProgressService.findRecentlyUpdated(RECENT_STUDY_PROGRESS_LIMIT),
                 // これから始まる予定が無ければ null。DTO 側で null を許容している
                 roadmapEventService.findNext().orElse(null));
     }
