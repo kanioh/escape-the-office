@@ -30,6 +30,7 @@ yarn-error.log*
 CLAUDE.md
 docs/spec.md
 docs/spring-notes.md
+docs/frontend-notes.md
 
 # --- OS ---
 .DS_Store

@@ -1,26 +1,44 @@
 @import "tailwindcss";
 
+/* 純白・純黒はコントラストが強すぎるため、暖色寄りのグレーで構成する。
+   ダークテーマはこのブロックの値を上書きするだけで切り替わる（クラス名は変えない） */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --background: #faf9f5;
+  --surface: #ffffff;
+  --foreground: #1f1e1d;
+  --muted: #6b6864;
+  --border: #e6e2d9;
+  --accent: #6a97de;
+  --track: #e9e5dc;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --background: #211f1d;
+    --surface: #2b2926;
+    --foreground: #eae7e0;
+    --muted: #a29d94;
+    --border: #3b3833;
+    --accent: #6a97de;
+    --track: #3b3833;
   }
+}
+
+/* ここに登録した名前から Tailwind がクラスを生成する（bg-background / text-muted など） */
+@theme inline {
+  --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-border: var(--border);
+  --color-accent: var(--accent);
+  --color-track: var(--track);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
 }
