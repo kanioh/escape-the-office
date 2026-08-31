@@ -7,6 +7,8 @@ import { usePathname } from "next/navigation";
 const NAV_ITEMS = [
   { href: "/", label: "ダッシュボード" },
   { href: "/study", label: "学習管理" },
+  { href: "/assets", label: "資産" },
+  { href: "/roadmap", label: "ロードマップ" },
 ];
 
 export function Sidebar() {

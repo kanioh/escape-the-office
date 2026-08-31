@@ -2,13 +2,8 @@ import Link from "next/link";
 
 import { StudyProgressList } from "@/components/study-progress-list";
 import { api } from "@/lib/api";
+import { formatDate, formatNumber } from "@/lib/format";
 import type { Dashboard } from "@/lib/types";
-
-// サーバーとブラウザで既定ロケールが違うと表示が食い違うため、明示的に固定する
-const formatNumber = (value: number) => value.toLocaleString("ja-JP");
-
-// Date に変換すると UTC 解釈で日付がずれるので、文字列のまま整形する
-const formatDate = (value: string) => value.replaceAll("-", "/");
 
 export default async function DashboardPage() {
   const dashboard = await api.get<Dashboard>("/api/dashboard");
@@ -18,13 +13,16 @@ export default async function DashboardPage() {
       <h1 className="text-xl font-semibold">ダッシュボード</h1>
 
       <div className="mt-8 grid grid-cols-2 gap-4">
-        <div className="rounded-xl border border-border bg-surface p-5">
-          <p className="text-sm text-muted">総資産</p>
-          <p className="mt-2 text-3xl font-semibold tabular-nums">
-            {formatNumber(dashboard.totalAssets)}
-            <span className="ml-1 text-base font-normal text-muted">円</span>
-          </p>
-        </div>
+        {/* a 要素は既定が inline のため、grid の中で高さを揃えるには block が要る */}
+        <Link href="/assets" className="block h-full">
+          <div className="h-full rounded-xl border border-border bg-surface p-5">
+            <p className="text-sm text-muted">総資産</p>
+            <p className="mt-2 text-3xl font-semibold tabular-nums">
+              {formatNumber(dashboard.totalAssets)}
+              <span className="ml-1 text-base font-normal text-muted">円</span>
+            </p>
+          </div>
+        </Link>
 
         <div className="rounded-xl border border-border bg-surface p-5">
           <p className="text-sm text-muted">生存可能期間</p>
@@ -38,20 +36,23 @@ export default async function DashboardPage() {
       <section className="mt-10">
         <h2 className="text-sm font-medium text-muted">次の予定</h2>
 
-        {dashboard.nextEvent ? (
-          <div className="mt-3 flex items-center justify-between rounded-xl border border-border bg-surface p-5">
-            <span className="font-medium">{dashboard.nextEvent.title}</span>
-            <span className="text-sm tabular-nums text-muted">
-              {formatDate(dashboard.nextEvent.startDate)}
-              {" 〜 "}
-              {dashboard.nextEvent.endDate
-                ? formatDate(dashboard.nextEvent.endDate)
-                : "未定"}
-            </span>
-          </div>
-        ) : (
-          <p className="mt-3 text-sm text-muted">これから始まる予定はありません</p>
-        )}
+        {/* 先頭の / が無いと相対パス扱いになり、別の画面から使ったときにずれる */}
+        <Link href="/roadmap">
+          {dashboard.nextEvent ? (
+            <div className="mt-3 flex items-center justify-between rounded-xl border border-border bg-surface p-5">
+              <span className="font-medium">{dashboard.nextEvent.title}</span>
+              <span className="text-sm tabular-nums text-muted">
+                {formatDate(dashboard.nextEvent.startDate)}
+                {" 〜 "}
+                {dashboard.nextEvent.endDate
+                  ? formatDate(dashboard.nextEvent.endDate)
+                  : "未定"}
+              </span>
+            </div>
+          ) : (
+            <p className="mt-3 text-sm text-muted">これから始まる予定はありません</p>
+          )}
+        </Link>
       </section>
 
       <section className="mt-10">

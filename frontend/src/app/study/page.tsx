@@ -1,5 +1,5 @@
 import { StudyItemForm } from "@/components/study-item-form";
-import { StudyProgressList } from "@/components/study-progress-list";
+import { StudyProgressEditor } from "@/components/study-progress-editor";
 import { api } from "@/lib/api";
 import type { StudyProgress } from "@/lib/types";
 
@@ -13,7 +13,9 @@ export default async function StudyPage() {
       <p className="mt-1 text-sm text-muted">{progresses.length} 項目</p>
 
       <div className="mt-8">
-        <StudyProgressList progresses={progresses} />
+        {/* useState の初期値は最初の描画時にしか使われない。項目を追加して
+            再取得しても一覧に反映されるよう、件数が変わったら作り直す */}
+        <StudyProgressEditor key={progresses.length} initialProgresses={progresses} />
         <StudyItemForm />
       </div>
     </>

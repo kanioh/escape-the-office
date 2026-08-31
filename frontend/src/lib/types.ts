@@ -28,6 +28,33 @@ export type RoadmapEvent = {
   endDate: string | null;
 };
 
+// GET /api/assets の1件分。その日時点の実残高
+export type AssetSnapshot = {
+  id: number;
+  recordedOn: string;
+  cashAmount: number;
+  nisaAmount: number;
+};
+
+// GET /api/expenses の1件分。recordedOn は「その値に見直した日」
+export type ExpenseSnapshot = {
+  id: number;
+  recordedOn: string;
+  monthlyExpense: number;
+};
+
+// GET /api/simulation/survival
+export type SurvivalSimulation = {
+  totalAssets: number;
+  monthlyExpense: number;
+  survivableMonths: number;
+  // どの時点のデータで計算したか。古い数字を見て判断する事故を防ぐために返している
+  basedOn: {
+    assetsRecordedOn: string;
+    expenseRecordedOn: string;
+  };
+};
+
 // GET /api/dashboard
 export type Dashboard = {
   totalAssets: number;

@@ -1,20 +1,8 @@
-import type { StudyProgress, StudyStatus } from "@/lib/types";
+import { STATUS_LABELS, STATUS_STYLES } from "@/lib/study-status";
+import type { StudyProgress } from "@/lib/types";
 
-// Record にしておくと、StudyStatus に値を足したときの書き忘れが型エラーになる
-const STATUS_LABELS: Record<StudyStatus, string> = {
-  NOT_STARTED: "未着手",
-  IN_PROGRESS: "進行中",
-  DONE: "完了",
-};
-
-// 「今やっているもの」だけアクセント色で拾い、完了と未着手は静かに沈める
-const STATUS_STYLES: Record<StudyStatus, string> = {
-  NOT_STARTED: "border border-border text-muted",
-  IN_PROGRESS: "bg-accent/10 text-accent",
-  DONE: "bg-foreground/5 text-muted",
-};
-
-// 表示するだけでクリックも状態も持たないため、サーバーコンポーネントのままにする
+// 表示するだけでクリックも状態も持たないため、サーバーコンポーネントのままにする。
+// 編集できる一覧は study-progress-editor.tsx（クライアント）側
 export function StudyProgressList({ progresses }: { progresses: StudyProgress[] }) {
   return (
     <ul className="divide-y divide-border border-y border-border">
