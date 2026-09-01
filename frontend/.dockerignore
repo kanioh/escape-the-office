@@ -1,0 +1,11 @@
+# ビルドコンテキストの転送対象から外す。
+# node_modules は macOS 用にビルドされており、Linux コンテナでは動かないため必ず除外する
+node_modules
+.next
+
+# 秘密情報をイメージに持ち込まない
+.env*
+
+.git
+.DS_Store
+npm-debug.log*

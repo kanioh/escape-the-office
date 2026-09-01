@@ -17,5 +17,37 @@ services:
       timeout: 5s
       retries: 5
 
+  backend:
+    build: ./backend
+    container_name: escape-the-office-backend
+    environment:
+      # ホスト名はサービス名の db。コンテナにとって localhost は自分自身を指すため
+      DB_URL: jdbc:postgresql://db:5432/escape_the_office
+      DB_USERNAME: postgres
+      DB_PASSWORD: postgres
+      TZ: Asia/Tokyo
+    ports:
+      - "8080:8080"
+    depends_on:
+      db:
+        # 起動直後に Flyway が接続するため、db が接続を受け付けるまで待つ
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        # ビルド時にJSへ焼き込まれる、ブラウザから見た接続先
+        NEXT_PUBLIC_API_BASE_URL: http://localhost:8080
+    container_name: escape-the-office-frontend
+    environment:
+      # サーバーコンポーネントの fetch はコンテナ内で実行されるため、こちらはサービス名
+      API_BASE_URL: http://backend:8080
+      TZ: Asia/Tokyo
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+
 volumes:
   postgres-data:

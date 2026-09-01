@@ -1,6 +1,13 @@
 // バックエンドの application.yaml と同じ「環境変数 or 既定値」方式。
-// ローカルは既定値、AWS では NEXT_PUBLIC_API_BASE_URL で本番URLに差し替える
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080";
+// ローカルは既定値、Docker/AWS では環境変数で差し替える
+const isServer = typeof window === "undefined";
+
+// サーバーコンポーネントの fetch はコンテナ内の Node が実行するため、
+// ブラウザから見た接続先（NEXT_PUBLIC_）とは別のホスト名が要る。
+// サーバー用は接頭辞なし＝ブラウザに配信されず、実行時に読める
+const API_BASE_URL = isServer
+  ? (process.env.API_BASE_URL ?? "http://localhost:8080")
+  : (process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080");
 
 // Spring Boot 側が RFC 9457（ProblemDetail）形式で返すエラー本文
 export type ProblemDetail = {

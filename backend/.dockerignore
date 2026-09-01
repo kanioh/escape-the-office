@@ -1,0 +1,8 @@
+# ビルドコンテキストの転送対象から外す。
+# target/ はホスト(macOS)の成果物で、コンテナ内では作り直すため不要
+target/
+*.log
+
+.DS_Store
+.idea/
+*.iml
