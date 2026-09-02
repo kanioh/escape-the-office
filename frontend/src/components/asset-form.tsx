@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 
+import { Button } from "@/components/button";
 import { api } from "@/lib/api";
 import { toIsoDate } from "@/lib/format";
 import type { AssetSnapshot } from "@/lib/types";
@@ -97,13 +98,12 @@ export function AssetForm({
           />
         </label>
 
-        <button
+        <Button
           type="submit"
           disabled={isSubmitting || cashAmount === "" || nisaAmount === ""}
-          className="rounded-md bg-accent px-4 py-2 text-sm text-white transition-opacity disabled:opacity-40"
         >
           {isSubmitting ? "記録中…" : "記録する"}
-        </button>
+        </Button>
       </div>
 
       {error && (

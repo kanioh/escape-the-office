@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 
+import { Button } from "@/components/button";
 import { api } from "@/lib/api";
 import { toIsoDate } from "@/lib/format";
 import type { ExpenseSnapshot } from "@/lib/types";
@@ -73,13 +74,9 @@ export function ExpenseForm({
           />
         </label>
 
-        <button
-          type="submit"
-          disabled={isSubmitting || monthlyExpense === ""}
-          className="rounded-md bg-accent px-4 py-2 text-sm text-white transition-opacity disabled:opacity-40"
-        >
+        <Button type="submit" disabled={isSubmitting || monthlyExpense === ""}>
           {isSubmitting ? "記録中…" : "記録する"}
-        </button>
+        </Button>
       </div>
 
       {error && (

@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 
+import { Button } from "@/components/button";
 import { api } from "@/lib/api";
 import type { RoadmapEvent } from "@/lib/types";
 
@@ -74,13 +75,12 @@ export function RoadmapEventForm({ today }: { today: string }) {
           />
         </label>
 
-        <button
+        <Button
           type="submit"
           disabled={isSubmitting || title.trim() === "" || startDate === ""}
-          className="rounded-md bg-accent px-4 py-2 text-sm text-white transition-opacity disabled:opacity-40"
         >
           {isSubmitting ? "追加中…" : "追加する"}
-        </button>
+        </Button>
       </div>
 
       {error && (

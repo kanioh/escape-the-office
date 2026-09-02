@@ -8,7 +8,7 @@
   --foreground: #1f1e1d;
   --muted: #6b6864;
   --border: #e6e2d9;
-  --accent: #6a97de;
+  --accent: #624de3;
   --track: #e9e5dc;
 }
 
@@ -19,7 +19,8 @@
     --foreground: #eae7e0;
     --muted: #a29d94;
     --border: #3b3833;
-    --accent: #6a97de;
+    /* 明色側の #624de3 は暗い背景だと 2.9:1 しかなく読めないため、明度を上げた同系色にする */
+    --accent: #a78bfa;
     --track: #3b3833;
   }
 }

@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 
+import { Button } from "@/components/button";
 import { ApiError, api } from "@/lib/api";
 import type { StudyItem } from "@/lib/types";
 
@@ -78,14 +79,13 @@ export function StudyItemForm() {
           className="flex-1 rounded-md border border-border bg-surface px-3 py-2 text-sm outline-none focus:border-accent"
         />
 
-        <button
+        <Button
           type="submit"
           // 空のまま送ると 400 が確定するため、押せないようにする
           disabled={isSubmitting || name.trim() === ""}
-          className="rounded-md bg-accent px-3 py-2 text-sm text-white transition-opacity disabled:opacity-40"
         >
           {isSubmitting ? "追加中…" : "追加"}
-        </button>
+        </Button>
 
         <button
           type="button"
