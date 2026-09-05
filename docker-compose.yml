@@ -3,16 +3,22 @@ services:
     image: postgres:17
     container_name: escape-the-office-db
     environment:
-      POSTGRES_DB: escape_the_office
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      # ${変数:-既定値} 形式。同じディレクトリの .env があればその値を使う。
+      # .env はコミットしないため、本番の資格情報がリポジトリに残らない
+      POSTGRES_DB: ${POSTGRES_DB:-escape_the_office}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
       TZ: Asia/Tokyo
     ports:
       - "5432:5432"
     volumes:
       - postgres-data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d escape_the_office"]
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-escape_the_office}",
+        ]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -21,10 +27,11 @@ services:
     build: ./backend
     container_name: escape-the-office-backend
     environment:
-      # ホスト名はサービス名の db。コンテナにとって localhost は自分自身を指すため
-      DB_URL: jdbc:postgresql://db:5432/escape_the_office
-      DB_USERNAME: postgres
-      DB_PASSWORD: postgres
+      # ホスト名はサービス名の db。コンテナにとって localhost は自分自身を指すため。
+      # 接続先とユーザーは db サービスと同じ変数を参照し、片方だけ変わる事故を防ぐ
+      DB_URL: jdbc:postgresql://db:5432/${POSTGRES_DB:-escape_the_office}
+      DB_USERNAME: ${POSTGRES_USER:-postgres}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
       TZ: Asia/Tokyo
     ports:
       - "8080:8080"
