@@ -44,11 +44,14 @@ services:
     build:
       context: ./frontend
       args:
-        # ビルド時にJSへ焼き込まれる、ブラウザから見た接続先
-        NEXT_PUBLIC_API_BASE_URL: http://localhost:8080
+        # ビルド時にJSへ焼き込まれる、ブラウザから見た接続先。
+        # 本番は Caddy が同一ドメインで振り分けるため空文字を渡して相対パスにする。
+        # ${変数-既定値} はコロン無し＝空文字を渡すとそのまま採用される
+        NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL-http://localhost:8080}
     container_name: escape-the-office-frontend
     environment:
-      # サーバーコンポーネントの fetch はコンテナ内で実行されるため、こちらはサービス名
+      # サーバーコンポーネントの fetch はコンテナ内で実行されるため、こちらはサービス名。
+      # Caddy を経由せず直接呼ぶ方が速く、経路も単純になる
       API_BASE_URL: http://backend:8080
       TZ: Asia/Tokyo
     ports:
@@ -56,5 +59,26 @@ services:
     depends_on:
       - backend
 
+  caddy:
+    image: caddy:2-alpine
+    container_name: escape-the-office-caddy
+    # .env に COMPOSE_PROFILES=prod がある本番でだけ起動する。
+    # ローカルには証明書を取得できるドメインが無いため
+    profiles: ["prod"]
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      # 取得した証明書の保存先。ボリュームにしないと作り直すたびに再取得となり、
+      # Let's Encrypt の発行制限に引っかかる
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      - frontend
+      - backend
+
 volumes:
   postgres-data:
+  caddy-data:
+  caddy-config:

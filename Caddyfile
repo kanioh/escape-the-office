@@ -1,0 +1,18 @@
+# ここに書いたドメイン宛のリクエストを受け、証明書も自動で取得・更新する。
+# 取得時に Let's Encrypt がこのサーバーへ到達できる必要があるため、
+# DNS がこの EC2 を指していること・80番が開いていることが前提になる。
+escape.toriangle.com {
+	# 使用ソフトを外部に知らせない（攻撃の手がかりを減らす）
+	header -Server
+
+	# 上から順に判定されるため、限定的な /api/* を先に置く
+	handle /api/* {
+		# backend はコンテナ名ではなく compose のサービス名。
+		# Docker の内部ネットワークで名前解決される（db:5432 と同じ仕組み）
+		reverse_proxy backend:8080
+	}
+
+	handle {
+		reverse_proxy frontend:3000
+	}
+}
