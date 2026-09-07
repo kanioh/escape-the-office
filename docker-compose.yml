@@ -2,6 +2,8 @@ services:
   db:
     image: postgres:17
     container_name: escape-the-office-db
+    # 自分で停止したときは止まったまま、それ以外（EC2 再起動など）では自動復帰する
+    restart: unless-stopped
     environment:
       # ${変数:-既定値} 形式。同じディレクトリの .env があればその値を使う。
       # .env はコミットしないため、本番の資格情報がリポジトリに残らない
@@ -26,6 +28,7 @@ services:
   backend:
     build: ./backend
     container_name: escape-the-office-backend
+    restart: unless-stopped
     environment:
       # ホスト名はサービス名の db。コンテナにとって localhost は自分自身を指すため。
       # 接続先とユーザーは db サービスと同じ変数を参照し、片方だけ変わる事故を防ぐ
@@ -49,6 +52,7 @@ services:
         # ${変数-既定値} はコロン無し＝空文字を渡すとそのまま採用される
         NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL-http://localhost:8080}
     container_name: escape-the-office-frontend
+    restart: unless-stopped
     environment:
       # サーバーコンポーネントの fetch はコンテナ内で実行されるため、こちらはサービス名。
       # Caddy を経由せず直接呼ぶ方が速く、経路も単純になる
@@ -65,6 +69,7 @@ services:
     # .env に COMPOSE_PROFILES=prod がある本番でだけ起動する。
     # ローカルには証明書を取得できるドメインが無いため
     profiles: ["prod"]
+    restart: unless-stopped
     ports:
       - "80:80"
       - "443:443"
