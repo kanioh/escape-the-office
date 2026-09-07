@@ -58,6 +58,12 @@ jobs:
         working-directory: frontend
         run: npm ci
 
+      # LayoutProps などの型は Next が .next/types に生成する。
+      # .next はコミットしないため、型チェックの前に生成しておく必要がある
+      - name: Generate route types
+        working-directory: frontend
+        run: npx next typegen
+
       - name: Type check
         working-directory: frontend
         run: npx tsc --noEmit
