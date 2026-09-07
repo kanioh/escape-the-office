@@ -31,6 +31,12 @@ spring:
       # エラーレスポンスを RFC 9457（ProblemDetail）形式で返す。既定は false
       enabled: true
 
+server:
+  # Caddy が HTTPS を終端し内部は HTTP で転送するため、この設定が無いと
+  # 自分を http:// だと誤認し、同一オリジンからの PUT を CORS 違反として 403 で弾く。
+  # X-Forwarded-* は詐称可能だが、8080 は外部に公開せず Caddy 経由でしか到達できない
+  forward-headers-strategy: framework
+
 app:
   cors:
     # 画面（Next.js）のオリジン。AWS では環境変数で本番URLに差し替える。カンマ区切りで複数指定可
