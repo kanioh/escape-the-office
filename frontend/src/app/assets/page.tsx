@@ -1,6 +1,6 @@
 import { AssetForm } from "@/components/asset-form";
 import { ExpenseForm } from "@/components/expense-form";
-import { api } from "@/lib/api";
+import { ApiError, api } from "@/lib/api";
 import { formatDate, formatNumber, toIsoDate } from "@/lib/format";
 import type {
   AssetSnapshot,
@@ -11,7 +11,14 @@ import type {
 export default async function AssetsPage() {
   // 互いに依存しない3本なので、順番に待たず同時に投げる
   const [simulation, assets, expenses] = await Promise.all([
-    api.get<SurvivalSimulation>("/api/simulation/survival"),
+    // 資産か生活費が未登録だと 404 になる。まだ計算できないだけなので
+    // ページ全体を落とさず null として扱う。通信障害などは握りつぶさない
+    api.get<SurvivalSimulation>("/api/simulation/survival").catch((error) => {
+      if (error instanceof ApiError && error.status === 404) {
+        return null;
+      }
+      throw error;
+    }),
     api.get<AssetSnapshot[]>("/api/assets"),
     api.get<ExpenseSnapshot[]>("/api/expenses"),
   ]);
@@ -31,29 +38,33 @@ export default async function AssetsPage() {
         <div className="rounded-xl border border-border bg-surface p-5">
           <p className="text-sm text-muted">総資産</p>
           <p className="mt-2 text-2xl font-semibold tabular-nums">
-            {formatNumber(simulation.totalAssets)}
+            {simulation === null ? "—" : formatNumber(simulation.totalAssets)}
             <span className="ml-1 text-sm font-normal text-muted">円</span>
           </p>
           <p className="mt-2 text-xs text-muted">
-            {formatDate(simulation.basedOn.assetsRecordedOn)} 時点
+            {simulation === null
+              ? "未登録"
+              : `${formatDate(simulation.basedOn.assetsRecordedOn)} 時点`}
           </p>
         </div>
 
         <div className="rounded-xl border border-border bg-surface p-5">
           <p className="text-sm text-muted">月の生活費</p>
           <p className="mt-2 text-2xl font-semibold tabular-nums">
-            {formatNumber(simulation.monthlyExpense)}
+            {simulation === null ? "—" : formatNumber(simulation.monthlyExpense)}
             <span className="ml-1 text-sm font-normal text-muted">円</span>
           </p>
           <p className="mt-2 text-xs text-muted">
-            {formatDate(simulation.basedOn.expenseRecordedOn)} 時点
+            {simulation === null
+              ? "未登録"
+              : `${formatDate(simulation.basedOn.expenseRecordedOn)} 時点`}
           </p>
         </div>
 
         <div className="rounded-xl border border-border bg-surface p-5">
           <p className="text-sm text-muted">生存可能期間</p>
           <p className="mt-2 text-2xl font-semibold tabular-nums">
-            {formatNumber(simulation.survivableMonths)}
+            {simulation === null ? "—" : formatNumber(simulation.survivableMonths)}
             <span className="ml-1 text-sm font-normal text-muted">か月</span>
           </p>
           <p className="mt-2 text-xs text-muted">総資産 ÷ 月の生活費</p>
