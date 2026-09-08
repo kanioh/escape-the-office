@@ -46,7 +46,7 @@ export function RoadmapEventForm({ today }: { today: string }) {
           <input
             value={title}
             onChange={(event) => setTitle(event.target.value)}
-            placeholder="有給消化、転職活動など"
+            placeholder="有給消化、ポートフォリオ作成など"
             // DB の VARCHAR(200) に合わせる
             maxLength={200}
             className="mt-1 block w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-foreground outline-none focus:border-accent"
