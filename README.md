@@ -50,17 +50,17 @@ EC2 1台の上で、4つのコンテナを Docker Compose で動かしていま�
 flowchart LR
     browser["ブラウザ"]
 
-    subgraph ec2["EC2 (t4g.small / Amazon Linux 2023)"]
-        caddy["Caddy<br/>:443 / :80"]
-        frontend["frontend<br/>Next.js :3000"]
-        backend["backend<br/>Spring Boot :8080"]
-        db[("db<br/>PostgreSQL :5432")]
+    subgraph ec2["EC2 t4g.small / Amazon Linux 2023"]
+        caddy["Caddy<br/>443 / 80"]
+        frontend["frontend<br/>Next.js 3000"]
+        backend["backend<br/>Spring Boot 8080"]
+        db["db<br/>PostgreSQL 5432"]
     end
 
-    browser -- HTTPS --> caddy
-    caddy -- "その他" --> frontend
-    caddy -- "/api/*" --> backend
-    frontend -- "サーバー側の取得" --> backend
+    browser -->|"HTTPS"| caddy
+    caddy -->|"その他"| frontend
+    caddy -->|"/api/*"| backend
+    frontend -->|"サーバー側の取得"| backend
     backend --> db
 ```
 
