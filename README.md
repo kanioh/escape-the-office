@@ -46,27 +46,22 @@
 
 EC2 1台の上で、4つのコンテナを Docker Compose で動かしています。外部に公開しているのは Caddy だけで、アプリとデータベースはコンテナ間ネットワークからのみ到達できます。
 
-```
-                          ┌─────────────────────────────────────┐
-                          │  EC2 (t4g.small / Amazon Linux 2023) │
-  ブラウザ ──HTTPS(443)──▶ │                                     │
-                          │   ┌──────────┐                      │
-                          │   │  Caddy   │  443 / 80             │
-                          │   └────┬─────┘                      │
-                          │        │  /api/*  →  backend:8080    │
-                          │        │  その他   →  frontend:3000   │
-                          │   ┌────▼─────┐   ┌──────────┐        │
-                          │   │ frontend │   │ backend  │        │
-                          │   │ Next.js  │──▶│  Spring  │        │
-                          │   │  :3000   │   │  :8080   │        │
-                          │   └──────────┘   └────┬─────┘        │
-                          │                       │              │
-                          │                  ┌────▼─────┐        │
-                          │                  │    db    │        │
-                          │                  │ Postgres │        │
-                          │                  │  :5432   │        │
-                          │                  └──────────┘        │
-                          └─────────────────────────────────────┘
+```mermaid
+flowchart LR
+    browser["ブラウザ"]
+
+    subgraph ec2["EC2 (t4g.small / Amazon Linux 2023)"]
+        caddy["Caddy<br/>:443 / :80"]
+        frontend["frontend<br/>Next.js :3000"]
+        backend["backend<br/>Spring Boot :8080"]
+        db[("db<br/>PostgreSQL :5432")]
+    end
+
+    browser -- HTTPS --> caddy
+    caddy -- "その他" --> frontend
+    caddy -- "/api/*" --> backend
+    frontend -- "サーバー側の取得" --> backend
+    backend --> db
 ```
 
 ### コンテナ構成
