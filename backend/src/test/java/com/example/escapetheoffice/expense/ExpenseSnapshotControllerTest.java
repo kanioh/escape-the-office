@@ -10,6 +10,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -19,7 +20,6 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
-import com.example.escapetheoffice.common.exception.ResourceNotFoundException;
 import com.example.escapetheoffice.expense.dto.ExpenseSnapshotResponse;
 import com.example.escapetheoffice.expense.dto.ExpenseSnapshotUpdateRequest;
 
@@ -116,7 +116,7 @@ class ExpenseSnapshotControllerTest {
     @DisplayName("最新1件は 200 で単一オブジェクトを返す")
     void findLatestReturnsOk() throws Exception {
         given(expenseSnapshotService.findLatest())
-                .willReturn(new ExpenseSnapshotResponse(2L, RECORDED_ON, 200_000L));
+                .willReturn(Optional.of(new ExpenseSnapshotResponse(2L, RECORDED_ON, 200_000L)));
 
         mockMvc.perform(get("/api/expenses/latest"))
                 .andExpect(status().isOk())
@@ -127,8 +127,8 @@ class ExpenseSnapshotControllerTest {
     @Test
     @DisplayName("記録が無ければ最新1件は 404 に変換する")
     void findLatestReturnsNotFoundWhenEmpty() throws Exception {
-        given(expenseSnapshotService.findLatest())
-                .willThrow(new ResourceNotFoundException("生活費の記録がまだありません"));
+        // Service は空を返すだけで、404 にするのは Controller の責務
+        given(expenseSnapshotService.findLatest()).willReturn(Optional.empty());
 
         mockMvc.perform(get("/api/expenses/latest"))
                 .andExpect(status().isNotFound())

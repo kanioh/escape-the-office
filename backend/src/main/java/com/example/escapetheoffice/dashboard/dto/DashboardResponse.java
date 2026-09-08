@@ -14,9 +14,11 @@ import com.example.escapetheoffice.study.dto.StudyProgressResponse;
  */
 public record DashboardResponse(
 
-        // 資産と生活費は必ず登録されている前提。無ければ画面ごと 404 になるため null は無い
-        long totalAssets,
-        long survivableMonths,
+        // 資産または生活費が未登録なら null。複数の情報を束ねる画面なので、
+        // 一部が欠けても画面ごと 404 にはせず、その項目だけ空で返す。
+        // 0 は「資産0円」と区別がつかないため、プリミティブの long ではなく Long を使う
+        Long totalAssets,
+        Long survivableMonths,
 
         // 最近更新した順の数件だけ。全件は画面③（学習管理）で見る。
         // 一度も進捗を登録していない項目は updated_at を持たないため含まれない

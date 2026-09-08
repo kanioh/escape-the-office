@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.example.escapetheoffice.common.exception.ResourceNotFoundException;
 import com.example.escapetheoffice.expense.dto.ExpenseSnapshotResponse;
 import com.example.escapetheoffice.expense.dto.ExpenseSnapshotUpdateRequest;
 
@@ -47,8 +48,13 @@ public class ExpenseSnapshotController {
         return expenseSnapshotService.findAll();
     }
 
+    /**
+     * 1件を返す API なので、記録が無ければ 404 とする。
+     * Service は Optional を返すだけにして、404 にするかどうかはここで決める。
+     */
     @GetMapping("/latest")
     public ExpenseSnapshotResponse findLatest() {
-        return expenseSnapshotService.findLatest();
+        return expenseSnapshotService.findLatest()
+                .orElseThrow(() -> new ResourceNotFoundException("生活費の記録がまだありません"));
     }
 }

@@ -10,6 +10,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -21,7 +22,6 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import com.example.escapetheoffice.asset.dto.AssetSnapshotResponse;
 import com.example.escapetheoffice.asset.dto.AssetSnapshotUpdateRequest;
-import com.example.escapetheoffice.common.exception.ResourceNotFoundException;
 
 @WebMvcTest(AssetSnapshotController.class)
 class AssetSnapshotControllerTest {
@@ -104,7 +104,8 @@ class AssetSnapshotControllerTest {
     @DisplayName("最新1件は 200 で単一オブジェクトを返す")
     void findLatestReturnsOk() throws Exception {
         given(assetSnapshotService.findLatest())
-                .willReturn(new AssetSnapshotResponse(2L, RECORDED_ON, 1_000_000L, 500_000L));
+                .willReturn(Optional.of(
+                        new AssetSnapshotResponse(2L, RECORDED_ON, 1_000_000L, 500_000L)));
 
         mockMvc.perform(get("/api/assets/latest"))
                 .andExpect(status().isOk())
@@ -115,8 +116,8 @@ class AssetSnapshotControllerTest {
     @Test
     @DisplayName("記録が無ければ最新1件は 404 に変換する")
     void findLatestReturnsNotFoundWhenEmpty() throws Exception {
-        given(assetSnapshotService.findLatest())
-                .willThrow(new ResourceNotFoundException("資産の記録がまだありません"));
+        // Service は空を返すだけで、404 にするのは Controller の責務
+        given(assetSnapshotService.findLatest()).willReturn(Optional.empty());
 
         mockMvc.perform(get("/api/assets/latest"))
                 .andExpect(status().isNotFound())

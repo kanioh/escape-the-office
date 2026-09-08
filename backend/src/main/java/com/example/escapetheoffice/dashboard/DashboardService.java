@@ -1,5 +1,7 @@
 package com.example.escapetheoffice.dashboard;
 
+import java.util.Optional;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -34,16 +36,16 @@ public class DashboardService {
 
     /**
      * 3つの取得を1つのトランザクションにまとめ、一貫した断面を返す。
-     * 資産か生活費が未登録なら simulate() の例外がそのまま上がり 404 になる。
-     * どちらが足りないかはそのメッセージで分かるため、ここでは捕まえない。
+     * 資産か生活費が未登録でも、学習進捗や次の予定は表示できるため画面全体は 404 にしない。
+     * 単体の /api/simulation/survival は「計算結果そのもの」を返す API なので、そちらは 404 にする。
      */
     @Transactional(readOnly = true)
     public DashboardResponse find() {
-        SurvivalSimulationResponse simulation = survivalSimulationService.simulate();
+        Optional<SurvivalSimulationResponse> simulation = survivalSimulationService.simulate();
 
         return new DashboardResponse(
-                simulation.totalAssets(),
-                simulation.survivableMonths(),
+                simulation.map(SurvivalSimulationResponse::totalAssets).orElse(null),
+                simulation.map(SurvivalSimulationResponse::survivableMonths).orElse(null),
                 studyProgressService.findRecentlyUpdated(RECENT_STUDY_PROGRESS_LIMIT),
                 // これから始まる予定が無ければ null。DTO 側で null を許容している
                 roadmapEventService.findNext().orElse(null));

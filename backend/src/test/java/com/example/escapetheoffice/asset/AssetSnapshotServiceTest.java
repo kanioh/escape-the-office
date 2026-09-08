@@ -1,7 +1,6 @@
 package com.example.escapetheoffice.asset;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
@@ -21,7 +20,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.example.escapetheoffice.asset.dto.AssetSnapshotResponse;
 import com.example.escapetheoffice.asset.dto.AssetSnapshotUpdateRequest;
-import com.example.escapetheoffice.common.exception.ResourceNotFoundException;
 
 @ExtendWith(MockitoExtension.class)
 class AssetSnapshotServiceTest {
@@ -110,23 +108,24 @@ class AssetSnapshotServiceTest {
                         new AssetSnapshot(USER_ID, RECORDED_ON, CASH_AMOUNT, NISA_AMOUNT)));
 
         // 実行
-        AssetSnapshotResponse response = assetSnapshotService.findLatest();
+        Optional<AssetSnapshotResponse> response = assetSnapshotService.findLatest();
 
         // 検証
-        assertThat(response.recordedOn()).isEqualTo(RECORDED_ON);
-        assertThat(response.cashAmount()).isEqualTo(CASH_AMOUNT);
+        assertThat(response).isPresent();
+        assertThat(response.get().recordedOn()).isEqualTo(RECORDED_ON);
+        assertThat(response.get().cashAmount()).isEqualTo(CASH_AMOUNT);
     }
 
     @Test
-    @DisplayName("記録が1件も無ければ例外を投げる")
-    void findLatestThrowsWhenEmpty() {
+    @DisplayName("記録が1件も無ければ空を返す（404 にするかは呼び出し側が決める）")
+    void findLatestReturnsEmptyWhenNoRecord() {
         // 準備
         given(assetSnapshotRepository.findFirstByUserIdOrderByRecordedOnDesc(eq(USER_ID)))
                 .willReturn(Optional.empty());
 
-        // 実行・検証
-        assertThatThrownBy(() -> assetSnapshotService.findLatest())
-                .isInstanceOf(ResourceNotFoundException.class)
-                .hasMessageContaining("資産の記録がまだありません");
+        // 実行・検証。
+        // ここで例外を投げると、トランザクションにロールバック必須の印が付き、
+        // 呼び出し側が捕まえてもコミットできなくなる
+        assertThat(assetSnapshotService.findLatest()).isEmpty();
     }
 }

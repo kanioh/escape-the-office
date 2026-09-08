@@ -1,7 +1,6 @@
 package com.example.escapetheoffice.expense;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
@@ -19,7 +18,6 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import com.example.escapetheoffice.common.exception.ResourceNotFoundException;
 import com.example.escapetheoffice.expense.dto.ExpenseSnapshotResponse;
 import com.example.escapetheoffice.expense.dto.ExpenseSnapshotUpdateRequest;
 
@@ -106,23 +104,22 @@ class ExpenseSnapshotServiceTest {
                         new ExpenseSnapshot(USER_ID, RECORDED_ON, MONTHLY_EXPENSE)));
 
         // 実行
-        ExpenseSnapshotResponse response = expenseSnapshotService.findLatest();
+        Optional<ExpenseSnapshotResponse> response = expenseSnapshotService.findLatest();
 
         // 検証
-        assertThat(response.recordedOn()).isEqualTo(RECORDED_ON);
-        assertThat(response.monthlyExpense()).isEqualTo(MONTHLY_EXPENSE);
+        assertThat(response).isPresent();
+        assertThat(response.get().recordedOn()).isEqualTo(RECORDED_ON);
+        assertThat(response.get().monthlyExpense()).isEqualTo(MONTHLY_EXPENSE);
     }
 
     @Test
-    @DisplayName("記録が1件も無ければ例外を投げる")
-    void findLatestThrowsWhenEmpty() {
+    @DisplayName("記録が1件も無ければ空を返す（404 にするかは呼び出し側が決める）")
+    void findLatestReturnsEmptyWhenNoRecord() {
         // 準備
         given(expenseSnapshotRepository.findFirstByUserIdOrderByRecordedOnDesc(eq(USER_ID)))
                 .willReturn(Optional.empty());
 
         // 実行・検証
-        assertThatThrownBy(() -> expenseSnapshotService.findLatest())
-                .isInstanceOf(ResourceNotFoundException.class)
-                .hasMessageContaining("生活費の記録がまだありません");
+        assertThat(expenseSnapshotService.findLatest()).isEmpty();
     }
 }

@@ -6,6 +6,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.time.LocalDate;
+import java.util.Optional;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -14,7 +15,6 @@ import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
-import com.example.escapetheoffice.common.exception.ResourceNotFoundException;
 import com.example.escapetheoffice.simulation.dto.SurvivalSimulationResponse;
 
 @WebMvcTest(SurvivalSimulationController.class)
@@ -32,14 +32,14 @@ class SurvivalSimulationControllerTest {
     @Test
     @DisplayName("200 で計算結果と計算の根拠を返す")
     void simulateReturnsOk() throws Exception {
-        given(survivalSimulationService.simulate()).willReturn(
+        given(survivalSimulationService.simulate()).willReturn(Optional.of(
                 new SurvivalSimulationResponse(
                         1_570_000L,
                         200_000L,
                         7L,
                         new SurvivalSimulationResponse.BasedOn(
                                 ASSETS_RECORDED_ON,
-                                EXPENSE_RECORDED_ON)));
+                                EXPENSE_RECORDED_ON))));
 
         mockMvc.perform(get("/api/simulation/survival"))
                 .andExpect(status().isOk())
@@ -54,12 +54,13 @@ class SurvivalSimulationControllerTest {
     @Test
     @DisplayName("計算の元データが無ければ 404 に変換する")
     void simulateReturnsNotFoundWhenDataMissing() throws Exception {
-        given(survivalSimulationService.simulate())
-                .willThrow(new ResourceNotFoundException("資産の記録がまだありません"));
+        // Service は空を返すだけで、404 にするのは Controller の責務。
+        // どちらが欠けているかは Optional では表せないため、文言は両方を挙げる形になる
+        given(survivalSimulationService.simulate()).willReturn(Optional.empty());
 
         mockMvc.perform(get("/api/simulation/survival"))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.status").value(404))
-                .andExpect(jsonPath("$.detail").value("資産の記録がまだありません"));
+                .andExpect(jsonPath("$.detail").value("資産または生活費の記録がまだありません"));
     }
 }

@@ -15,7 +15,6 @@ import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
-import com.example.escapetheoffice.common.exception.ResourceNotFoundException;
 import com.example.escapetheoffice.dashboard.dto.DashboardResponse;
 import com.example.escapetheoffice.roadmap.dto.RoadmapEventResponse;
 import com.example.escapetheoffice.study.StudyStatus;
@@ -54,14 +53,20 @@ class DashboardControllerTest {
     }
 
     @Test
-    @DisplayName("資産や生活費が未登録なら 404 に変換する")
-    void findReturnsNotFoundWhenSimulationUnavailable() throws Exception {
-        given(dashboardService.find())
-                .willThrow(new ResourceNotFoundException("資産の記録がまだありません"));
+    @DisplayName("資産や生活費が未登録でも 200 で返し、金額だけ空にする")
+    void findReturnsOkWithNullAmountsWhenSimulationUnavailable() throws Exception {
+        given(dashboardService.find()).willReturn(new DashboardResponse(
+                null,
+                null,
+                List.of(new StudyProgressResponse(1L, "Spring Boot", StudyStatus.IN_PROGRESS, 55)),
+                null));
 
+        // 画面が丸ごと落ちないことを保証する。404 に戻す変更が入ればここで気づける
         mockMvc.perform(get("/api/dashboard"))
-                .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.status").value(404))
-                .andExpect(jsonPath("$.detail").value("資産の記録がまだありません"));
+                .andExpect(status().isOk())
+                // null は値として存在しない扱いになるため doesNotExist で見る
+                .andExpect(jsonPath("$.totalAssets").doesNotExist())
+                .andExpect(jsonPath("$.survivableMonths").doesNotExist())
+                .andExpect(jsonPath("$.recentStudyProgress.length()").value(1));
     }
 }

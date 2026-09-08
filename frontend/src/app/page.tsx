@@ -17,19 +17,34 @@ export default async function DashboardPage() {
         <Link href="/assets" className="block h-full">
           <div className="h-full rounded-xl border border-border bg-surface p-5">
             <p className="text-sm text-muted">総資産</p>
-            <p className="mt-2 text-3xl font-semibold tabular-nums">
-              {formatNumber(dashboard.totalAssets)}
-              <span className="ml-1 text-base font-normal text-muted">円</span>
-            </p>
+            {/* 0 円と未登録を区別するため、falsy 判定ではなく null と比べる */}
+            {dashboard.totalAssets === null ? (
+              <>
+                <p className="mt-2 text-3xl font-semibold text-muted">未登録</p>
+                <p className="mt-2 text-sm text-accent">資産を登録する →</p>
+              </>
+            ) : (
+              <p className="mt-2 text-3xl font-semibold tabular-nums">
+                {formatNumber(dashboard.totalAssets)}
+                <span className="ml-1 text-base font-normal text-muted">円</span>
+              </p>
+            )}
           </div>
         </Link>
 
         <div className="rounded-xl border border-border bg-surface p-5">
           <p className="text-sm text-muted">生存可能期間</p>
-          <p className="mt-2 text-3xl font-semibold tabular-nums">
-            {formatNumber(dashboard.survivableMonths)}
-            <span className="ml-1 text-base font-normal text-muted">か月</span>
-          </p>
+          {dashboard.survivableMonths === null ? (
+            <>
+              <p className="mt-2 text-3xl font-semibold text-muted">—</p>
+              <p className="mt-2 text-sm text-muted">資産と生活費の記録が必要です</p>
+            </>
+          ) : (
+            <p className="mt-2 text-3xl font-semibold tabular-nums">
+              {formatNumber(dashboard.survivableMonths)}
+              <span className="ml-1 text-base font-normal text-muted">か月</span>
+            </p>
+          )}
         </div>
       </div>
 

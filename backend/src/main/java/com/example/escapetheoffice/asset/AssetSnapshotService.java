@@ -9,7 +9,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.example.escapetheoffice.asset.dto.AssetSnapshotResponse;
 import com.example.escapetheoffice.asset.dto.AssetSnapshotUpdateRequest;
-import com.example.escapetheoffice.common.exception.ResourceNotFoundException;
 
 @Service
 public class AssetSnapshotService {
@@ -59,10 +58,14 @@ public class AssetSnapshotService {
                 .toList();
     }
 
+    /**
+     * 記録が無ければ空を返す。404 にするか欠損として扱うかは呼び出し側で決める。
+     * ここで例外を投げると、@Transactional の境界を越えた時点でトランザクションに
+     * ロールバック必須の印が付き、呼び出し側で捕まえてもコミットできなくなる。
+     */
     @Transactional(readOnly = true)
-    public AssetSnapshotResponse findLatest() {
+    public Optional<AssetSnapshotResponse> findLatest() {
         return assetSnapshotRepository.findFirstByUserIdOrderByRecordedOnDesc(CURRENT_USER_ID)
-                .map(AssetSnapshotResponse::from)
-                .orElseThrow(() -> new ResourceNotFoundException("資産の記録がまだありません"));
+                .map(AssetSnapshotResponse::from);
     }
 }

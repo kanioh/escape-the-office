@@ -57,8 +57,9 @@ export type SurvivalSimulation = {
 
 // GET /api/dashboard
 export type Dashboard = {
-  totalAssets: number;
-  survivableMonths: number;
+  // 資産または生活費が未登録なら null。画面は 404 にせず、この2つだけ空で返る
+  totalAssets: number | null;
+  survivableMonths: number | null;
   // 最近更新した順に最大3件。全件は /study で見る
   recentStudyProgress: StudyProgress[];
   // これから始まる予定が無ければ null

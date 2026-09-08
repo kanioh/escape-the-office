@@ -1,7 +1,6 @@
 package com.example.escapetheoffice.dashboard;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.BDDMockito.given;
 
@@ -16,7 +15,6 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import com.example.escapetheoffice.common.exception.ResourceNotFoundException;
 import com.example.escapetheoffice.dashboard.dto.DashboardResponse;
 import com.example.escapetheoffice.roadmap.RoadmapEventService;
 import com.example.escapetheoffice.roadmap.dto.RoadmapEventResponse;
@@ -47,11 +45,12 @@ class DashboardServiceTest {
     @DisplayName("3つの Service の結果をまとめて返す")
     void findCombinesEachSource() {
         // 準備。値をすべて変えておき、取り違えがあれば分かるようにする
-        given(survivalSimulationService.simulate()).willReturn(new SurvivalSimulationResponse(
-                1_570_000L,
-                250_000L,
-                6L,
-                new SurvivalSimulationResponse.BasedOn(RECORDED_ON, RECORDED_ON)));
+        given(survivalSimulationService.simulate()).willReturn(Optional.of(
+                new SurvivalSimulationResponse(
+                        1_570_000L,
+                        250_000L,
+                        6L,
+                        new SurvivalSimulationResponse.BasedOn(RECORDED_ON, RECORDED_ON))));
         given(studyProgressService.findRecentlyUpdated(anyInt())).willReturn(List.of(
                 new StudyProgressResponse(1L, "Spring Boot", StudyStatus.IN_PROGRESS, 55),
                 new StudyProgressResponse(2L, "AWS", StudyStatus.NOT_STARTED, 0)));
@@ -74,11 +73,12 @@ class DashboardServiceTest {
     @DisplayName("これから始まる予定が無ければ nextEvent は null になる")
     void findReturnsNullNextEventWhenNoUpcomingEvent() {
         // 準備
-        given(survivalSimulationService.simulate()).willReturn(new SurvivalSimulationResponse(
-                1_570_000L,
-                250_000L,
-                6L,
-                new SurvivalSimulationResponse.BasedOn(RECORDED_ON, RECORDED_ON)));
+        given(survivalSimulationService.simulate()).willReturn(Optional.of(
+                new SurvivalSimulationResponse(
+                        1_570_000L,
+                        250_000L,
+                        6L,
+                        new SurvivalSimulationResponse.BasedOn(RECORDED_ON, RECORDED_ON))));
         given(studyProgressService.findRecentlyUpdated(anyInt())).willReturn(List.of());
         given(roadmapEventService.findNext()).willReturn(Optional.empty());
 
@@ -91,16 +91,25 @@ class DashboardServiceTest {
     }
 
     @Test
-    @DisplayName("資産や生活費が未登録なら例外を捕まえずそのまま投げる")
-    void findPropagatesExceptionWhenSimulationUnavailable() {
-        // 準備
-        given(survivalSimulationService.simulate())
-                .willThrow(new ResourceNotFoundException("資産の記録がまだありません"));
+    @DisplayName("資産や生活費が未登録でも、金額だけ null にして他の情報は返す")
+    void findReturnsNullAmountsWhenSimulationUnavailable() {
+        // 準備。資産が1件も無い状態を再現する
+        given(survivalSimulationService.simulate()).willReturn(Optional.empty());
+        given(studyProgressService.findRecentlyUpdated(anyInt())).willReturn(List.of(
+                new StudyProgressResponse(1L, "Spring Boot", StudyStatus.IN_PROGRESS, 55)));
+        given(roadmapEventService.findNext()).willReturn(Optional.of(
+                new RoadmapEventResponse(3L, "有給消化",
+                        LocalDate.of(2026, 9, 1), LocalDate.of(2026, 9, 30))));
 
-        // 実行・検証。
-        // 画面を落としたくないからと try-catch を足すと、404 にする判断が崩れる
-        assertThatThrownBy(() -> dashboardService.find())
-                .isInstanceOf(ResourceNotFoundException.class)
-                .hasMessageContaining("資産の記録がまだありません");
+        // 実行
+        DashboardResponse response = dashboardService.find();
+
+        // 検証。計算できない2つだけが null になる
+        assertThat(response.totalAssets()).isNull();
+        assertThat(response.survivableMonths()).isNull();
+
+        // 巻き添えで消えていないこと。ここが今回の変更の目的
+        assertThat(response.recentStudyProgress()).hasSize(1);
+        assertThat(response.nextEvent().title()).isEqualTo("有給消化");
     }
 }

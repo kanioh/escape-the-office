@@ -1,11 +1,11 @@
 package com.example.escapetheoffice.simulation;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verifyNoInteractions;
 
 import java.time.LocalDate;
+import java.util.Optional;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -18,7 +18,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.example.escapetheoffice.asset.AssetSnapshotService;
 import com.example.escapetheoffice.asset.dto.AssetSnapshotResponse;
-import com.example.escapetheoffice.common.exception.ResourceNotFoundException;
 import com.example.escapetheoffice.expense.ExpenseSnapshotService;
 import com.example.escapetheoffice.expense.dto.ExpenseSnapshotResponse;
 import com.example.escapetheoffice.simulation.dto.SurvivalSimulationResponse;
@@ -53,15 +52,17 @@ class SurvivalSimulationServiceTest {
     void simulateCalculatesSurvivableMonths(
             long cashAmount, long nisaAmount, long monthlyExpense, long expectedMonths) {
         // 準備
-        given(assetSnapshotService.findLatest()).willReturn(
-                new AssetSnapshotResponse(1L, ASSETS_RECORDED_ON, cashAmount, nisaAmount));
-        given(expenseSnapshotService.findLatest()).willReturn(
-                new ExpenseSnapshotResponse(1L, EXPENSE_RECORDED_ON, monthlyExpense));
+        given(assetSnapshotService.findLatest()).willReturn(Optional.of(
+                new AssetSnapshotResponse(1L, ASSETS_RECORDED_ON, cashAmount, nisaAmount)));
+        given(expenseSnapshotService.findLatest()).willReturn(Optional.of(
+                new ExpenseSnapshotResponse(1L, EXPENSE_RECORDED_ON, monthlyExpense)));
 
         // 実行
-        SurvivalSimulationResponse response = survivalSimulationService.simulate();
+        Optional<SurvivalSimulationResponse> result = survivalSimulationService.simulate();
 
         // 検証
+        assertThat(result).isPresent();
+        SurvivalSimulationResponse response = result.get();
         assertThat(response.totalAssets()).isEqualTo(cashAmount + nisaAmount);
         assertThat(response.monthlyExpense()).isEqualTo(monthlyExpense);
         assertThat(response.survivableMonths()).isEqualTo(expectedMonths);
@@ -71,13 +72,13 @@ class SurvivalSimulationServiceTest {
     @DisplayName("計算に使ったデータの記録日を返す")
     void simulateReturnsBasedOnDates() {
         // 準備
-        given(assetSnapshotService.findLatest()).willReturn(
-                new AssetSnapshotResponse(1L, ASSETS_RECORDED_ON, 1_050_000L, 520_000L));
-        given(expenseSnapshotService.findLatest()).willReturn(
-                new ExpenseSnapshotResponse(1L, EXPENSE_RECORDED_ON, 200_000L));
+        given(assetSnapshotService.findLatest()).willReturn(Optional.of(
+                new AssetSnapshotResponse(1L, ASSETS_RECORDED_ON, 1_050_000L, 520_000L)));
+        given(expenseSnapshotService.findLatest()).willReturn(Optional.of(
+                new ExpenseSnapshotResponse(1L, EXPENSE_RECORDED_ON, 200_000L)));
 
         // 実行
-        SurvivalSimulationResponse response = survivalSimulationService.simulate();
+        SurvivalSimulationResponse response = survivalSimulationService.simulate().orElseThrow();
 
         // 検証
         assertThat(response.basedOn().assetsRecordedOn()).isEqualTo(ASSETS_RECORDED_ON);
@@ -85,33 +86,27 @@ class SurvivalSimulationServiceTest {
     }
 
     @Test
-    @DisplayName("資産の記録が無ければ例外がそのまま伝わり、生活費は取得しない")
-    void simulateThrowsWhenAssetNotFound() {
+    @DisplayName("資産の記録が無ければ空を返し、生活費は取得しない")
+    void simulateReturnsEmptyWhenAssetNotFound() {
         // 準備
-        given(assetSnapshotService.findLatest())
-                .willThrow(new ResourceNotFoundException("資産の記録がまだありません"));
+        given(assetSnapshotService.findLatest()).willReturn(Optional.empty());
 
         // 実行・検証
-        assertThatThrownBy(() -> survivalSimulationService.simulate())
-                .isInstanceOf(ResourceNotFoundException.class)
-                .hasMessageContaining("資産の記録がまだありません");
+        assertThat(survivalSimulationService.simulate()).isEmpty();
 
         // 資産が無い時点で止まるため、生活費は取りに行かない
         verifyNoInteractions(expenseSnapshotService);
     }
 
     @Test
-    @DisplayName("生活費の記録が無ければ例外がそのまま伝わる")
-    void simulateThrowsWhenExpenseNotFound() {
+    @DisplayName("生活費の記録が無ければ空を返す")
+    void simulateReturnsEmptyWhenExpenseNotFound() {
         // 準備
-        given(assetSnapshotService.findLatest()).willReturn(
-                new AssetSnapshotResponse(1L, ASSETS_RECORDED_ON, 1_050_000L, 520_000L));
-        given(expenseSnapshotService.findLatest())
-                .willThrow(new ResourceNotFoundException("生活費の記録がまだありません"));
+        given(assetSnapshotService.findLatest()).willReturn(Optional.of(
+                new AssetSnapshotResponse(1L, ASSETS_RECORDED_ON, 1_050_000L, 520_000L)));
+        given(expenseSnapshotService.findLatest()).willReturn(Optional.empty());
 
         // 実行・検証
-        assertThatThrownBy(() -> survivalSimulationService.simulate())
-                .isInstanceOf(ResourceNotFoundException.class)
-                .hasMessageContaining("生活費の記録がまだありません");
+        assertThat(survivalSimulationService.simulate()).isEmpty();
     }
 }

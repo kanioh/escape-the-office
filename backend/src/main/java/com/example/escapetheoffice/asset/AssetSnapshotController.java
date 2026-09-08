@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.example.escapetheoffice.asset.dto.AssetSnapshotResponse;
 import com.example.escapetheoffice.asset.dto.AssetSnapshotUpdateRequest;
+import com.example.escapetheoffice.common.exception.ResourceNotFoundException;
 
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.PastOrPresent;
@@ -47,8 +48,13 @@ public class AssetSnapshotController {
         return assetSnapshotService.findAll();
     }
 
+    /**
+     * 1件を返す API なので、記録が無ければ 404 とする。
+     * Service は Optional を返すだけにして、404 にするかどうかはここで決める。
+     */
     @GetMapping("/latest")
     public AssetSnapshotResponse findLatest() {
-        return assetSnapshotService.findLatest();
+        return assetSnapshotService.findLatest()
+                .orElseThrow(() -> new ResourceNotFoundException("資産の記録がまだありません"));
     }
 }

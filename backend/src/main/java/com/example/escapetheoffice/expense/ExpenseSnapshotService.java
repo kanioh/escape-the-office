@@ -7,7 +7,6 @@ import java.util.Optional;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.example.escapetheoffice.common.exception.ResourceNotFoundException;
 import com.example.escapetheoffice.expense.dto.ExpenseSnapshotResponse;
 import com.example.escapetheoffice.expense.dto.ExpenseSnapshotUpdateRequest;
 
@@ -58,10 +57,13 @@ public class ExpenseSnapshotService {
                 .toList();
     }
 
+    /**
+     * 記録が無ければ空を返す。404 にするか欠損として扱うかは呼び出し側で決める。
+     * 理由は AssetSnapshotService#findLatest と同じ（トランザクションの巻き戻し対策）。
+     */
     @Transactional(readOnly = true)
-    public ExpenseSnapshotResponse findLatest() {
+    public Optional<ExpenseSnapshotResponse> findLatest() {
         return expenseSnapshotRepository.findFirstByUserIdOrderByRecordedOnDesc(CURRENT_USER_ID)
-                .map(ExpenseSnapshotResponse::from)
-                .orElseThrow(() -> new ResourceNotFoundException("生活費の記録がまだありません"));
+                .map(ExpenseSnapshotResponse::from);
     }
 }
