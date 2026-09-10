@@ -42,6 +42,16 @@ services:
       db:
         # 起動直後に Flyway が接続するため、db が接続を受け付けるまで待つ
         condition: service_healthy
+    healthcheck:
+      # actuator の health は DB 接続の可否まで含めて判定する。
+      # -f は非2xx を失敗として扱う指定で、これが無いと 503 の本文を受け取って成功になる
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      # 起動完了までの猶予。この間の失敗は retries に数えないため、
+      # 起動が遅い EC2 でも途中経過で unhealthy と判定されない
+      start_period: 60s
 
   frontend:
     build:
@@ -61,7 +71,10 @@ services:
     ports:
       - "3000:3000"
     depends_on:
-      - backend
+      backend:
+        # トップページはサーバーコンポーネントが backend を呼ぶため、
+        # 起動しただけでなく応答できる状態になるまで待つ
+        condition: service_healthy
 
   caddy:
     image: caddy:2-alpine
